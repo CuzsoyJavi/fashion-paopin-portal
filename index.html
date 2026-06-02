@@ -642,43 +642,10 @@ function renderInternalAccountBoard() {
   grid.querySelectorAll('.copy-pass-btn').forEach(btn => btn.onclick = () => navigator.clipboard?.writeText(btn.dataset.pass));
 }
 function setupAuth() {
-  populateMerchantSelect();
-  document.querySelectorAll('.auth-tab').forEach(btn => btn.onclick = () => setAuthTab(btn.dataset.authTab));
-  document.getElementById('merchantSelect').onchange = e => {
-    const more = e.target.value === '__more__';
-    document.getElementById('manualUserField').classList.toggle('show', more);
-    document.getElementById('fakeFilter').classList.toggle('show', more);
-  };
   document.getElementById('internalLoginBtn').onclick = () => {
     if (document.getElementById('internalPassword').value === INTERNAL_PASSWORD) { unlockPortal('internal'); renderInternalAccountBoard(); }
     else document.getElementById('authError').textContent = '内部访问密码错误。';
   };
-  document.getElementById('externalLoginBtn').onclick = () => {
-    const selected = document.getElementById('merchantSelect').value;
-    const username = selected === '__more__' ? document.getElementById('manualUsername').value.trim() : selected;
-    const password = document.getElementById('merchantPassword').value;
-    const account = getMerchantAccounts().find(a => a.username === username && a.password === password);
-    if (account) enterExternal(account.clientName || account.username);
-    else document.getElementById('authError').textContent = '商家用户名或密码错误。';
-  };
-  let markClicks = 0;
-  document.querySelector('.mark')?.addEventListener('click', () => { markClicks += 1; clearTimeout(window.__markClickTimer); window.__markClickTimer = setTimeout(() => markClicks = 0, 1200); if (markClicks >= 5) { markClicks = 0; openDevModal(); } });
-  window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'j') openDevModal(); });
-  document.getElementById('devUnlockBtn').onclick = () => {
-    if (document.getElementById('devPassword').value !== DEV_PASSWORD) return;
-    document.getElementById('devManager').style.display = 'block';
-    renderDevUsers();
-  };
-  document.getElementById('addDevUserBtn').onclick = () => {
-    const username = document.getElementById('newDevUser').value.trim();
-    const password = document.getElementById('newDevPass').value;
-    if (!username || !password) return;
-    const arr = getMerchantAccounts();
-    arr.push({ username, password, clientName: username });
-    setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers();
-    document.getElementById('newDevUser').value = ''; document.getElementById('newDevPass').value = '';
-  };
-  document.getElementById('devCloseBtn').onclick = () => document.getElementById('devModal').classList.remove('open');
 }
 
 function init() { renderAll(); wireStaticEvents(); setupAuth(); }
