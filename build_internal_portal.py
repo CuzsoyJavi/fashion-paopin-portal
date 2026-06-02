@@ -369,7 +369,8 @@ def build_data():
         source_files = [internal["source"]] + [client["source"] for client in clients]
         by_date[date] = {"internal": internal, "clients": clients, "sourceFiles": source_files}
 
-    dates = sorted(by_date)
+    dates = sorted(by_date)[-3:]
+    by_date = {date: by_date[date] for date in dates}
     latest_date = dates[-1] if dates else ""
     return {
         "generatedAt": "2026-06-02",
