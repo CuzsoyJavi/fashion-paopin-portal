@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>跑品客户门户 · 内部版</title>
+  <title>跑品客户门户 · 内部直客销售版</title>
   <style>
     :root {
       --paper: #fbfaf6;
@@ -126,8 +126,22 @@
     .client-head { display:flex; justify-content:space-between; align-items:start; gap:18px; margin-bottom:18px; }
     .client-name { font-size:22px; font-weight:780; letter-spacing:-.03em; }
     .risk { padding:7px 10px; border-radius:999px; background:#fff1f1; color:var(--red); font-weight:760; font-size:12px; }
-    .trend-chart { margin: 16px 0; padding: 14px; border: 1px solid var(--line); border-radius:20px; background:linear-gradient(180deg,#fff,rgba(248,250,252,.86)); overflow:hidden; }
+    .trend-chart { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius:18px; background:linear-gradient(180deg,#fff,rgba(248,250,252,.86)); overflow:hidden; }
     .trend-chart img { display:block; width:100%; height:auto; border-radius:14px; }
+    .report-shell { display:grid; gap:18px; }
+    .report-chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .report-chart-card, .report-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 28px rgba(30,45,70,.06); }
+    .report-card-title { display:flex; align-items:center; gap:10px; margin:0 0 16px; font-weight:780; color:var(--ink); }
+    .report-card-title::after { content:''; flex:1; height:1px; background:linear-gradient(to right, rgba(23,32,51,.12), transparent); }
+    .report-metric-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
+    .report-link-title { grid-column:1 / -1; color:var(--blue); font-weight:780; padding:8px 0 6px; border-bottom:2px solid rgba(30,90,167,.28); }
+    .report-metric-block { background:#f8fafc; border:1px solid #edf0f5; border-radius:16px; padding:16px; }
+    .report-metric-label { color:var(--muted); font-size:12px; font-weight:680; margin-bottom:8px; }
+    .report-metric-value { font-size:22px; font-weight:780; color:var(--ink); margin-bottom:8px; }
+    .report-metric-change { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
+    .report-product-table td:first-child { white-space:normal; min-width:320px; line-height:1.45; }
+    .report-diagnosis .md-body { padding:0; }
+    @media (max-width: 980px) { .report-chart-row, .report-metric-grid { grid-template-columns:1fr; } }
     details.raw-details { margin-top: 16px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.72); overflow:hidden; }
     details.raw-details > summary { cursor:pointer; padding:14px 16px; font-weight:760; color:var(--ink); }
     .md-body { padding: 18px; color:#263044; line-height:1.72; font-size:13px; }
@@ -172,9 +186,74 @@
       .modal-layout { grid-template-columns:1fr; }
       .video-stage { border-radius:32px 32px 0 0; min-height:360px; }
     }
+
+    .auth-locked .app { filter: blur(10px); pointer-events: none; user-select: none; }
+    .auth-shell { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; padding: 28px; background: radial-gradient(circle at 28% 18%, rgba(30,90,167,.16), transparent 28rem), rgba(251,250,246,.72); backdrop-filter: blur(18px); }
+    .auth-card { width: min(520px, 94vw); border: 1px solid rgba(23,32,51,.12); border-radius: 30px; background: rgba(255,255,255,.92); box-shadow: 0 34px 90px rgba(23,32,51,.18); padding: 26px; }
+    .auth-title { font-family: var(--serif); font-size: 28px; letter-spacing: -.04em; margin: 0 0 8px; }
+    .auth-sub { margin: 0 0 20px; color: var(--muted); line-height: 1.7; font-size: 13px; }
+    .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 6px; border-radius: 999px; background: rgba(23,32,51,.06); margin-bottom: 18px; }
+    .auth-tab { border: 0; padding: 11px 12px; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+    .auth-tab.active { color: var(--ink); background: #fff; box-shadow: 0 8px 20px rgba(23,32,51,.08); font-weight: 760; }
+    .auth-panel { display: none; }
+    .auth-panel.active { display: block; }
+    .auth-field { display: grid; gap: 7px; margin: 12px 0; }
+    .auth-field label { font-size: 12px; color: var(--muted); font-weight: 680; }
+    .auth-field input, .auth-field select { width: 100%; border: 1px solid rgba(23,32,51,.14); border-radius: 16px; padding: 12px 13px; background: #fff; color: var(--ink); font: inherit; outline: none; }
+    .auth-field input:focus, .auth-field select:focus { border-color: rgba(30,90,167,.45); box-shadow: 0 0 0 4px rgba(30,90,167,.10); }
+    .auth-button { width: 100%; margin-top: 12px; border: 0; border-radius: 16px; padding: 13px 15px; color: #fff; background: var(--ink); font: inherit; font-weight: 760; cursor: pointer; }
+    .auth-error { min-height: 20px; margin-top: 10px; color: var(--red); font-size: 12px; }
+    .manual-user { display: none; }
+    .manual-user.show { display: grid; }
+    .fake-filter { display: none; margin-top: 10px; padding: 12px; border-radius: 16px; color: var(--muted); background: rgba(244,241,233,.72); font-size: 12px; line-height: 1.6; }
+    .fake-filter.show { display: block; }
+    .dev-modal { position: fixed; inset: 0; z-index: 10000; display: none; place-items: center; padding: 28px; background: rgba(15,22,36,.38); backdrop-filter: blur(14px); }
+    .dev-modal.open { display: grid; }
+    .dev-card { width: min(680px, 94vw); max-height: 86vh; overflow: auto; border-radius: 26px; background: #fff; box-shadow: 0 30px 100px rgba(0,0,0,.24); padding: 24px; }
+    .dev-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 8px; margin: 8px 0; align-items: center; }
+    .dev-row input { border: 1px solid var(--line); border-radius: 12px; padding: 10px; font: inherit; }
+    .dev-row button, .dev-card button { border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; background: rgba(23,32,51,.08); }
+
+
+    .account-board { margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,255,255,.78); box-shadow: 0 10px 28px rgba(30,45,70,.06); }
+    .account-board-title { margin: 0 0 12px; font-weight: 780; color: var(--ink); }
+    .account-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    .account-row { display: grid; grid-template-columns: minmax(180px, 1fr) 180px auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid rgba(23,32,51,.08); border-radius: 14px; background: #fff; }
+    .account-row span { color: var(--muted); font-size: 12px; }
+    .account-row b { font-weight: 760; }
+    .copy-pass-btn { border: 0; border-radius: 999px; padding: 8px 12px; color: #fff; background: var(--ink); cursor: pointer; font: inherit; font-size: 12px; }
+
   </style>
 </head>
-<body>
+<body class="auth-locked">
+
+  <div class="auth-shell" id="authShell" aria-modal="true" role="dialog">
+    <div class="auth-card">
+      <h1 class="auth-title">跑品客户门户</h1>
+      <div class="auth-tabs" style="grid-template-columns:1fr;">
+        <button class="auth-tab active" data-auth-tab="internal">内部直客销售</button>
+      </div>
+      <div class="auth-panel active" id="internalPanel">
+        <div class="auth-field"><label>内部访问密码</label><input id="internalPassword" type="password" autocomplete="current-password" placeholder="请输入内部访问密码" /></div>
+        <button class="auth-button" id="internalLoginBtn">进入内部版门户</button>
+      </div>
+      <div class="auth-error" id="authError"></div>
+    </div>
+  </div>
+  <div class="dev-modal" id="devModal">
+    <div class="dev-card">
+      <h2 style="margin:0 0 6px;font-family:var(--serif);">访问账号维护</h2>
+      <p style="margin:0 0 14px;color:var(--muted);font-size:13px;">仅保存在当前浏览器 localStorage，用于本地权限原型预览。</p>
+      <div class="auth-field"><label>维护口令</label><input id="devPassword" type="password" placeholder="输入维护口令后显示账号" /></div>
+      <button id="devUnlockBtn">解锁</button>
+      <div id="devManager" style="display:none;margin-top:16px;">
+        <div id="devUserList"></div>
+        <div class="dev-row"><input id="newDevUser" placeholder="客户名称" /><input id="newDevPass" placeholder="密码" /><button id="addDevUserBtn">添加</button></div>
+        <button id="devCloseBtn" style="margin-top:10px;">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <div class="app">
     <aside class="sidebar">
       <div class="brand-mark">
@@ -221,7 +300,8 @@
       </section>
 
       <section class="section" id="vip">
-        <div class="section-head"><div><h2>客户日报目录</h2><div class="section-desc">默认折叠所有客户日报；销售按客户点击展开查看完整日报原文、趋势和商品数据。</div></div></div>
+        <div class="section-head"><div><h2>客户日报目录</h2><div class="section-desc">默认折叠所有客户日报；销售按客户点击展开查看图表化日报内容。</div></div></div>
+        <div class="account-board"><div class="account-board-title">外部商家客户账号</div><div class="account-grid" id="accountGrid"></div></div>
         <div class="client-grid" id="clientGrid"></div>
       </section>
 
@@ -362,6 +442,29 @@ function clientSpendValue(c) {
   const v = Number(String(raw).replace(/[^0-9.\-]/g, ''));
   return Number.isFinite(v) ? v : 0;
 }
+function metricSectionHTML(title, data) {
+  const links = Object.keys(data || {});
+  if (!links.length) return '';
+  return `<div class="report-card"><div class="report-card-title">${title}</div><div class="report-metric-grid">${links.map(link => `<div class="report-link-title">${esc(link)}链路</div>${Object.entries(data[link]).map(([label, item]) => `<div class="report-metric-block"><div class="report-metric-label">${esc(label)}</div><div class="report-metric-value">${esc(item.value || '-')}</div><div class="report-metric-change"><span>环比 ${esc(item.delta || '-')}</span><span class="${cls(item.rate)}">${esc(item.rate || '-')}</span></div></div>`).join('')}`).join('')}</div></div>`;
+}
+function productTableHTML(c) {
+  if (!c.products || !c.products.length) return '';
+  return `<div class="report-card"><div class="report-card-title">商品数据</div><div class="table-wrap"><table class="report-product-table">${tableHTML(c.products, ['link','推广产品ID','消耗(万元)','竞价CPM(元)','目标出价(元)','下单ROI','下单单价(元)','下单成本(元)','下单率(%)','ctr(%)'])}</table></div></div>`;
+}
+function diagnosisHTML(c) {
+  const html = c.source?.html || '';
+  const idx = html.indexOf('昨日投放诊断');
+  const coreIdx = html.indexOf('核心结论');
+  const start = idx >= 0 ? Math.max(0, html.lastIndexOf('<h3', idx)) : (coreIdx >= 0 ? Math.max(0, html.lastIndexOf('<h3', coreIdx)) : 0);
+  return `<div class="report-card report-diagnosis"><div class="report-card-title">投放诊断</div><div class="md-body">${html.slice(start)}</div></div>`;
+}
+function renderClientReport(c, idx, prefix) {
+  return `<div class="report-shell"><div class="report-chart-row"><div class="report-chart-card"><div class="report-card-title">消耗趋势（近14天，万元）</div><div class="trend-chart" id="${prefix}-cost-${idx}"></div></div><div class="report-chart-card"><div class="report-card-title">下单 ROI 趋势（近14天）</div><div class="trend-chart" id="${prefix}-roi-${idx}"></div></div></div>${metricSectionHTML('效果指标', c.effects)}${metricSectionHTML('基建指标', c.basics)}${productTableHTML(c)}${diagnosisHTML(c)}</div>`;
+}
+function renderReportCharts(c, idx, prefix) {
+  drawTrendSeries(document.getElementById(`${prefix}-cost-${idx}`), c.trend, '消耗(万元)', '消耗趋势', '#1e5aa7', '万');
+  drawTrendSeries(document.getElementById(`${prefix}-roi-${idx}`), c.trend, '下单ROI', '下单 ROI 趋势', '#087f5b', '');
+}
 function renderClientCards() {
   const data = currentData();
   const grid = document.getElementById('clientGrid');
@@ -371,14 +474,13 @@ function renderClientCards() {
     const spend = cid['消耗']?.value || '-';
     const spendRate = cid['消耗']?.rate || '-';
     const roi = cid['下单ROI']?.value || '-';
-    return `<details class="raw-details client-folder"><summary>${esc(c.name)} · 消耗 ${esc(spend)} · ROI ${esc(roi)} · ${esc(spendRate)}</summary><article class="client-card"><div class="trend-chart" id="trend-${idx}"></div><div class="md-body">${c.source.html}</div></article></details>`;
+    return `<details class="raw-details client-folder"><summary>${esc(c.name)} · 消耗 ${esc(spend)} · ROI ${esc(roi)} · ${esc(spendRate)}</summary><article class="client-card">${renderClientReport(c, idx, 'client')}</article></details>`;
   }).join('');
-  clients.forEach((c, idx) => drawTrend(document.getElementById(`trend-${idx}`), c.trend));
+  clients.forEach((c, idx) => renderReportCharts(c, idx, 'client'));
 }
-function drawTrend(el, rows) {
+function drawTrendSeries(el, rows, field, title, color = '#1e5aa7', unit = '') {
   if (!el || !rows || !rows.length) return;
-  const vals = rows.map(r => Number(r['消耗(万元)'] || 0));
-  const rois = rows.map(r => Number(r['下单ROI'] || 0));
+  const vals = rows.map(r => Number(r[field] || 0));
   const dates = rows.map(r => r['日期'] || '');
   const max = Math.max(...vals) || 1;
   const min = Math.min(...vals);
@@ -393,20 +495,21 @@ function drawTrend(el, rows) {
   }).join('');
   const labels = [0, Math.floor((dates.length - 1) / 2), dates.length - 1].filter((v, i, a) => a.indexOf(v) === i).map(i => `<text x="${xAt(i)}" y="${h - 14}" text-anchor="middle" fill="#8a93a3" font-size="12">${dates[i]}</text>`).join('');
   const latestX = xAt(vals.length - 1), latestY = yAt(vals[vals.length - 1]);
+  const latestText = `${vals[vals.length - 1].toFixed(2)}${unit}`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
     <rect width="${w}" height="${h}" rx="18" fill="#ffffff"/>
-    <text x="${padX}" y="28" fill="#172033" font-size="15" font-weight="700">近14天消耗趋势</text>
-    <text x="${w - padX}" y="28" text-anchor="end" fill="#6d7480" font-size="12">最新 ROI ${rois[rois.length - 1] || '-'}</text>
+    <text x="${padX}" y="28" fill="#172033" font-size="15" font-weight="700">${title}</text>
     ${grid}
-    <polygon points="${area}" fill="#dfeaff" opacity="0.78"/>
-    <polyline points="${pointList}" fill="none" stroke="#1e5aa7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    ${vals.map((v, i) => `<circle cx="${xAt(i)}" cy="${yAt(v)}" r="4" fill="#fff" stroke="#1e5aa7" stroke-width="2"/>`).join('')}
-    <circle cx="${latestX}" cy="${latestY}" r="7" fill="#1e5aa7"/>
-    <text x="${latestX - 10}" y="${latestY - 14}" text-anchor="end" fill="#1e5aa7" font-size="13" font-weight="700">${vals[vals.length - 1].toFixed(2)}万</text>
+    <polygon points="${area}" fill="#dfeaff" opacity="0.72"/>
+    <polyline points="${pointList}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    ${vals.map((v, i) => `<circle cx="${xAt(i)}" cy="${yAt(v)}" r="4" fill="#fff" stroke="${color}" stroke-width="2"/>`).join('')}
+    <circle cx="${latestX}" cy="${latestY}" r="7" fill="${color}"/>
+    <text x="${latestX - 10}" y="${latestY - 14}" text-anchor="end" fill="${color}" font-size="13" font-weight="700">${latestText}</text>
     ${labels}
   </svg>`;
-  el.innerHTML = `<img alt="近14天消耗趋势" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" />`;
+  el.innerHTML = `<img alt="${title}" src="data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}" />`;
 }
+function drawTrend(el, rows) { drawTrendSeries(el, rows, '消耗(万元)', '消耗趋势', '#1e5aa7', '万'); }
 function wireStaticEvents() {
   document.querySelectorAll('#anomalyTabs button').forEach(btn => btn.onclick = () => { document.querySelectorAll('#anomalyTabs button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); state.anomalyView = btn.dataset.view; renderAnomalyTable(); });
   document.querySelectorAll('#productLinkTabs button').forEach(btn => btn.onclick = () => { document.querySelectorAll('#productLinkTabs button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); state.productLink = btn.dataset.link; state.productCategory = '全部'; renderProducts(); });
@@ -419,7 +522,166 @@ function wireStaticEvents() {
 function renderAll() {
   renderDateControls(); renderTopbar(); renderOverviewCards(); renderFluctuation(); renderTreemaps(); renderProducts(); renderClientCards();
 }
-function init() { renderAll(); wireStaticEvents(); }
+
+const INTERNAL_PASSWORD = 'ams2026';
+const DEV_PASSWORD = 'javi2026';
+function spendBucket(v) {
+  const n = Number(v || 0);
+  if (n >= 5) return '5万+';
+  if (n >= 3) return '3到5万';
+  if (n >= 1) return '1到3万';
+  if (n >= 0.5) return '5,000到1万';
+  return '0到5,000';
+}
+function roiBucket(v) {
+  const n = Number(v || 0);
+  if (!Number.isFinite(n)) return '-';
+  const low = Math.floor(n * 10) / 10;
+  return `${low.toFixed(1)}到${(low + 0.1).toFixed(1)}`;
+}
+function pctInt(v) {
+  const n = Number(String(v ?? '').replace('%',''));
+  return Number.isFinite(n) ? `${Math.round(n)}%` : '-';
+}
+function authData() { return currentData(); }
+function defaultMerchantAccounts() {
+  const clients = authData().clients.map(c => c.name).slice(0, 5);
+  return clients.map(name => ({ username: name, password: 'vip2026', clientName: name }));
+}
+function getMerchantAccounts() {
+  const saved = localStorage.getItem('paopinMerchantAccounts');
+  if (saved) { try { return JSON.parse(saved); } catch(e) {} }
+  const accounts = defaultMerchantAccounts();
+  localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts));
+  return accounts;
+}
+function setMerchantAccounts(accounts) { localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts)); }
+function populateMerchantSelect() {
+  const select = document.getElementById('merchantSelect');
+  const accounts = getMerchantAccounts();
+  select.innerHTML = accounts.slice(0, 5).map(a => `<option value="${esc(a.username)}">${esc(a.username)}</option>`).join('') + '<option value="__more__">更多</option>';
+}
+function setAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.authTab === tab));
+  document.getElementById('internalPanel').classList.toggle('active', tab === 'internal');
+  document.getElementById('externalPanel').classList.toggle('active', tab === 'external');
+  document.getElementById('authError').textContent = '';
+}
+function unlockPortal(mode) {
+  document.body.classList.remove('auth-locked');
+  document.getElementById('authShell').style.display = 'none';
+  document.body.classList.toggle('external-mode', mode === 'external');
+}
+function renderExternalTreemaps() {
+  const data = authData();
+  const row = document.getElementById('treemapRow');
+  row.innerHTML = ['CID','小店'].map(link => `<div class="card treemap-card"><div class="treemap-title"><strong>${link} 二级类目占比</strong><span class="pill">脱敏占比</span></div><div class="treemap" id="treemap-${link}"></div></div>`).join('');
+  ['CID','小店'].forEach(link => {
+    const el = document.getElementById(`treemap-${link}`);
+    const rows = data.internal.overview[link] || [];
+    const total = rows.reduce((sum, r) => sum + Number(r['消耗占比(%)'] || 0), 0) || 1;
+    const first = Number(rows[0]?.['消耗占比(%)'] || 0);
+    let y = 0;
+    el.innerHTML = rows.map((r, i) => {
+      const share = Number(r['消耗占比(%)'] || 0);
+      let style;
+      if (i === 0) style = `left:0%;top:0%;width:50%;height:100%;`;
+      else { const hh = (share / Math.max(total - first, 1)) * 100; style = `left:50%;top:${y}%;width:50%;height:${hh}%;`; y += hh; }
+      return `<div class="tile" style="${style}background:${colors[i % colors.length]};"><b>${esc(r['商品二级类目名称V2'])}</b><span>${pctInt(r['消耗占比(%)'])}</span></div>`;
+    }).join('');
+  });
+}
+function renderExternalProducts() {
+  const data = authData();
+  const allProducts = data.internal.products || [];
+  const products = allProducts.filter(p => p.link === state.productLink);
+  const cats = ['全部', ...Array.from(new Set(products.map(p => p.category)))];
+  const tabs = document.getElementById('categoryTabs');
+  tabs.innerHTML = cats.map(c => `<button class="${c === state.productCategory ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(btn => btn.onclick = () => { state.productCategory = btn.dataset.cat; renderExternalProducts(); });
+  const shown = products.filter(p => state.productCategory === '全部' || p.category === state.productCategory);
+  document.getElementById('productGrid').innerHTML = shown.map((p, idx) => `<article class="card product-card" data-idx="${allProducts.indexOf(p)}"><div class="cover"><video muted playsinline preload="metadata" src="${esc(p.url)}#t=0.8"></video><div class="cover-fallback">${esc(shortName(p.name, 24))}</div><div class="rank">#${esc(p.rank || idx + 1)}</div><div class="play-dot">▶</div></div><div class="product-body"><div class="product-name">${esc(p.name)}</div><div class="product-meta"><div><span>消耗区间</span><b>${spendBucket(p.spend)}</b></div><div><span>ROI区间</span><b>${roiBucket(p.roi)}</b></div></div></div></article>`).join('');
+  document.querySelectorAll('.product-card').forEach(card => card.onclick = () => openExternalCreative(allProducts[Number(card.dataset.idx)]));
+  prepareVideoCovers();
+}
+function openExternalCreative(p) {
+  openCreative(p);
+  document.getElementById('insightText').textContent = `该商品在当前类目具备跑量参考价值，消耗位于${spendBucket(p.spend)}区间，ROI约${roiBucket(p.roi)}。建议重点复盘首屏商品呈现、核心卖点和转化口径。`;
+  document.getElementById('scriptText').textContent = '外部版仅提供脱敏后的创意参考，具体投放数据请以客户自身账户日报为准。';
+}
+function renderExternalClient(clientName) {
+  const data = authData();
+  const client = data.clients.find(c => c.name === clientName);
+  document.getElementById('clientGrid').innerHTML = client ? `<article class="card client-card">${renderClientReport(client, 0, 'external')}</article>` : '<div class="card panel">未找到该客户日报。</div>';
+  if (client) renderReportCharts(client, 0, 'external');
+}
+function enterExternal(clientName) {
+  unlockPortal('external');
+  state.productLink = 'CID';
+  state.productCategory = '全部';
+  renderExternalTreemaps();
+  renderExternalProducts();
+  renderExternalClient(clientName);
+  document.querySelector('.nav a[href="#selection"]')?.classList.add('active');
+  document.getElementById('selection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function renderDevUsers() {
+  const list = document.getElementById('devUserList');
+  const accounts = getMerchantAccounts();
+  list.innerHTML = accounts.map((a, idx) => `<div class="dev-row"><input value="${esc(a.username)}" data-dev-user="${idx}" /><input value="${esc(a.password)}" data-dev-pass="${idx}" /><button data-dev-del="${idx}">删除</button></div>`).join('');
+  list.querySelectorAll('[data-dev-del]').forEach(btn => btn.onclick = () => { const arr = getMerchantAccounts(); arr.splice(Number(btn.dataset.devDel), 1); setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers(); });
+  list.querySelectorAll('[data-dev-user]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); const i = Number(input.dataset.devUser); arr[i].username = input.value.trim(); arr[i].clientName = input.value.trim(); setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers(); });
+  list.querySelectorAll('[data-dev-pass]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); arr[Number(input.dataset.devPass)].password = input.value; setMerchantAccounts(arr); });
+}
+function openDevModal() { document.getElementById('devModal').classList.add('open'); }
+const INTERNAL_ACCOUNT_LIST = [{"username": "厦门甄选好物传媒有限公司", "password": "vip2026", "clientName": "厦门甄选好物传媒有限公司"}, {"username": "杭州如是电子商务有限公司", "password": "vip2026", "clientName": "杭州如是电子商务有限公司"}, {"username": "莆田市康德发电子商务有限公司", "password": "vip2026", "clientName": "莆田市康德发电子商务有限公司"}, {"username": "小鹅电商", "password": "vip2026", "clientName": "小鹅电商"}, {"username": "合肥邦鑫服饰有限公司", "password": "vip2026", "clientName": "合肥邦鑫服饰有限公司"}];
+function renderInternalAccountBoard() {
+  const grid = document.getElementById('accountGrid');
+  if (!grid) return;
+  grid.innerHTML = INTERNAL_ACCOUNT_LIST.map(a => `<div class="account-row"><div><span>用户名</span><br><b>${esc(a.username)}</b></div><div><span>密码</span><br><b>${esc(a.password)}</b></div><button class="copy-pass-btn" data-pass="${esc(a.password)}">复制密码</button></div>`).join('');
+  grid.querySelectorAll('.copy-pass-btn').forEach(btn => btn.onclick = () => navigator.clipboard?.writeText(btn.dataset.pass));
+}
+function setupAuth() {
+  populateMerchantSelect();
+  document.querySelectorAll('.auth-tab').forEach(btn => btn.onclick = () => setAuthTab(btn.dataset.authTab));
+  document.getElementById('merchantSelect').onchange = e => {
+    const more = e.target.value === '__more__';
+    document.getElementById('manualUserField').classList.toggle('show', more);
+    document.getElementById('fakeFilter').classList.toggle('show', more);
+  };
+  document.getElementById('internalLoginBtn').onclick = () => {
+    if (document.getElementById('internalPassword').value === INTERNAL_PASSWORD) { unlockPortal('internal'); renderInternalAccountBoard(); }
+    else document.getElementById('authError').textContent = '内部访问密码错误。';
+  };
+  document.getElementById('externalLoginBtn').onclick = () => {
+    const selected = document.getElementById('merchantSelect').value;
+    const username = selected === '__more__' ? document.getElementById('manualUsername').value.trim() : selected;
+    const password = document.getElementById('merchantPassword').value;
+    const account = getMerchantAccounts().find(a => a.username === username && a.password === password);
+    if (account) enterExternal(account.clientName || account.username);
+    else document.getElementById('authError').textContent = '商家用户名或密码错误。';
+  };
+  let markClicks = 0;
+  document.querySelector('.mark')?.addEventListener('click', () => { markClicks += 1; clearTimeout(window.__markClickTimer); window.__markClickTimer = setTimeout(() => markClicks = 0, 1200); if (markClicks >= 5) { markClicks = 0; openDevModal(); } });
+  window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'j') openDevModal(); });
+  document.getElementById('devUnlockBtn').onclick = () => {
+    if (document.getElementById('devPassword').value !== DEV_PASSWORD) return;
+    document.getElementById('devManager').style.display = 'block';
+    renderDevUsers();
+  };
+  document.getElementById('addDevUserBtn').onclick = () => {
+    const username = document.getElementById('newDevUser').value.trim();
+    const password = document.getElementById('newDevPass').value;
+    if (!username || !password) return;
+    const arr = getMerchantAccounts();
+    arr.push({ username, password, clientName: username });
+    setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers();
+    document.getElementById('newDevUser').value = ''; document.getElementById('newDevPass').value = '';
+  };
+  document.getElementById('devCloseBtn').onclick = () => document.getElementById('devModal').classList.remove('open');
+}
+
+function init() { renderAll(); wireStaticEvents(); setupAuth(); }
 init();
 </script>
 </body>
