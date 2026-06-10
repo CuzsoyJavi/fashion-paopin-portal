@@ -314,72 +314,96 @@ function fmt(value, suffix='') { if (value === null || value === undefined || va
 function cls(v) { const s = String(v || '').trim(); if (!s || s === '-' || s.toLowerCase() === 'nan') return 'flat'; if (s.includes('↓') || /^-\d/.test(s)) return 'down'; if (s.includes('↑') || /^\+\d/.test(s)) return 'up'; return 'flat'; }
 function shortName(name, n=32) { return name && name.length > n ? name.slice(0, n) + '…' : name; }
 function metricFromText(text, label) { const m = String(text || '').match(new RegExp(label + '\\s*([0-9.]+)')); return m ? m[1] : '-'; }
-function productTags(name) {
-  const tags = [];
-  if (/防晒|遮阳|冰袖|面罩|口罩|帽/.test(name)) tags.push('防晒出行');
-  if (/冰丝|凉感|透气|速干|夏季|薄款|网眼/.test(name)) tags.push('夏季舒适');
-  if (/桑蚕丝|亚麻|天丝|莱赛尔|新疆棉|铜氨|真丝/.test(name)) tags.push('面料背书');
-  if (/大师|师傅|开光|五台山|关公|观音|貔貅|平安|转运|招财|生肖|佛|吊坠|手串/.test(name)) tags.push('寓意信任');
-  if (/轻奢|高级|专柜|高档|定制|高奢|老钱/.test(name)) tags.push('价格锚点');
-  if (/买一送一|两件|10双|套装|组合/.test(name)) tags.push('组合促销');
-  if (/内衣|文胸|无钢圈|聚拢|收副乳|塑身|内裤|袜/.test(name)) tags.push('功能贴身');
-  if (/男士|爸爸|中老年|老人|大码/.test(name)) tags.push('明确人群');
-  if (/女|女士|妈妈|显瘦|遮肉|高腰|阔腿/.test(name)) tags.push('女性穿搭');
-  if (/鞋|布鞋|凉鞋|休闲鞋|运动鞋|驾车鞋/.test(name)) tags.push('鞋履场景');
-  return [...new Set(tags)];
+function pickMatches(name, dict) {
+  return Object.keys(dict).filter(key => name.includes(key)).map(key => dict[key]);
+}
+function firstMatch(name, dict, fallback = '') {
+  const key = Object.keys(dict).find(k => name.includes(k));
+  return key ? dict[key] : fallback;
+}
+function productNoun(name) {
+  const nouns = ['Polo衫','POLO','T恤','衬衫','休闲裤','阔腿裤','西装裤','牛仔裤','短裤','套装','连衣裙','马甲','内衣','文胸','内裤','袜','中筒袜','鞋垫','休闲鞋','运动鞋','布鞋','凉鞋','帽','面罩','口罩','项链','吊坠','戒指','手链','手镯','耳环','耳钉','耳饰','腰带'];
+  return nouns.find(n => name.includes(n)) || (name.replace(/[【】\[\]()（）#0-9A-Za-z,，.。\-]/g, '').slice(0, 8) || '商品');
+}
+function productSignals(name) {
+  const materialDict = {
+    '桑蚕丝':'桑蚕丝材质', '铜氨丝':'铜氨丝垂顺感', '新疆棉':'新疆棉品质', '亚麻':'亚麻透气肌理', '天丝':'天丝凉感垂坠', '莱赛尔':'莱赛尔亲肤', '冰丝':'冰丝凉感', '真丝':'真丝光泽', '牛皮':'牛皮质感', '纯棉':'纯棉亲肤', '钛合金':'钛合金材质', '黄铜':'黄铜材质', '树脂':'树脂轻量感', '合金':'合金造型', '菩提':'菩提文玩感', '蕾丝':'蕾丝细节', '无钢圈':'无钢圈舒适结构', '网眼':'网眼透气结构'
+  };
+  const functionDict = {
+    '防晒':'防晒遮挡', '遮阳':'遮阳防护', '透气':'透气不闷', '凉感':'凉感体验', '速干':'速干通勤', '防滑':'防滑安全', '软底':'软底脚感', '聚拢':'聚拢承托', '收副乳':'收副乳功能', '无痕':'无痕穿着', '塑身':'塑身支撑', '高腰':'高腰显比例', '显瘦':'显瘦遮肉', '遮肉':'遮肉修身', '吸汗':'吸汗舒适', '防臭':'防臭卖点', '抗菌':'抗菌安心', '免烫':'免烫易打理', '垂感':'垂感显质感', '可折叠':'可折叠便携', '提臀':'提臀塑形'
+  };
+  const styleDict = {
+    '新中式':'新中式审美', '国风':'国风情绪', '美式':'美式休闲', '轻奢':'轻奢价格锚点', '高端':'高端质感', '专柜':'专柜背书', '老钱':'老钱风格', '复古':'复古调性', '法式':'法式精致', '韩版':'韩版日常', '商务':'商务场景', '休闲':'休闲百搭', '潮流':'潮流心智', '通勤':'通勤刚需', '户外':'户外场景'
+  };
+  const sceneDict = {
+    '骑行':'骑行通勤', '开车':'开车场景', '旅游':'旅游出行', '户外':'户外活动', '妈妈':'妈妈人群', '爸爸':'爸爸人群', '中老年':'中老年人群', '大码':'大码人群', '夏季':'夏季季节需求', '春夏':'春夏换季', '端午':'节日礼赠', '送礼':'礼赠场景'
+  };
+  const offerDict = {'买一送一':'买一送一利益点','两件装':'两件装组合','10双':'多双装囤货','套装':'套装省心','礼盒':'礼盒送礼','顺丰':'物流承诺','厂家直销':'源头价信任'};
+  const motifDict = {
+    '年年有鱼':'年年有鱼寓意，适合把“好彩头/送礼”拍成开场钩子',
+    '七粒米':'七粒米造型记忆点，适合用微距特写突出戒面细节',
+    '老板链':'老板链身份符号，适合用手腕佩戴和商务场景做反差',
+    '百福':'百福祝福符号，适合强化节庆/礼赠理由',
+    '招财':'招财寓意，适合在首屏直接讲“求财/开运”需求',
+    '五台山':'五台山信任背书，适合补足来源与祈福场景',
+    '观音':'观音护佑寓意，适合走平安守护场景',
+    '莲花':'莲花造型，适合用干净背景和细节旋转展示',
+    '皇冠':'皇冠造型，适合突出精致、礼物感和女性佩戴场景',
+    '牡丹':'牡丹富贵意象，适合讲富贵/妈妈礼物场景',
+    '孔雀':'孔雀造型记忆点，适合用色彩和开屏式细节做视觉钩子',
+    '水滴':'水滴造型，适合突出垂坠感和脸型修饰',
+    '叶子':'叶子造型，适合突出轻盈、自然和日常百搭',
+    '海鸥':'海鸥领/海鸥V领是版型识别点，首帧要拍清领口线条',
+    '六口袋':'六口袋是功能记忆点，必须给到口袋容量/细节镜头',
+    '镂空':'镂空结构要用近景证明透气和设计感',
+    '飞织':'飞织鞋面要拍鞋面纹理和弯折脚感',
+    '老北京':'老北京布鞋心智明确，适合拍软底、防滑和长辈穿着场景'
+  };
+  const motifs = pickMatches(name, motifDict);
+  return {
+    noun: productNoun(name),
+    materials: pickMatches(name, materialDict),
+    functions: pickMatches(name, functionDict),
+    styles: pickMatches(name, styleDict),
+    scenes: pickMatches(name, sceneDict),
+    offers: pickMatches(name, offerDict),
+    motifs,
+    hook: motifs[0] || firstMatch(name, {...functionDict, ...sceneDict, ...styleDict}, productNoun(name) + '核心卖点'),
+  };
+}
+function compactList(arr, fallback) {
+  const x = [...new Set(arr.filter(Boolean))];
+  return x.length ? x.slice(0, 3).join('、') : fallback;
 }
 function productInsight(p) {
   const name = p.name || '';
-  const tags = productTags(name);
+  const s = productSignals(name);
   const spend = p.spend !== undefined ? p.spend : '-';
   const roi = p.roi !== undefined ? p.roi : '-';
-  const category = p.category || '该类目';
-  const points = [];
-  if (tags.includes('防晒出行')) points.push('主卖点应聚焦「户外暴晒/通勤骑行/旅游出行」的即时痛点，首屏最好直接出现遮挡面积或佩戴前后对比。');
-  if (tags.includes('夏季舒适')) points.push('素材需要把“凉、薄、透气”拍成可感知证据，例如手揉面料、风吹起伏、近景网眼/垂感，而不是只打字幕。');
-  if (tags.includes('面料背书')) points.push('面料词是该品的信任资产，建议用吊牌、成分特写、手感拉伸、上身垂坠四类镜头建立高客单合理性。');
-  if (tags.includes('寓意信任')) points.push('这类饰品转化依赖“寓意+送礼/自戴理由”，脚本应先讲场景和寓意，再落到材质细节，避免只拍静物导致信任不足。');
-  if (tags.includes('价格锚点')) points.push('“轻奢/专柜/高档”需要有质感证据：包装、细节、面料光泽、上身完整度，否则容易被用户感知为空泛高价。');
-  if (tags.includes('组合促销')) points.push('组合装要尽早讲清数量和到手感，建议在前 5 秒给出“买几得几/一套解决什么问题”，降低价格理解成本。');
-  if (tags.includes('功能贴身')) points.push('贴身品类需要用功能场景建立安全感，如承托、无痕、凉感、抗菌或舒适包裹；画面表达要克制但证据充分。');
-  if (tags.includes('鞋履场景')) points.push('鞋履素材建议补足脚感证据：弯折、防滑、透气、走路动态和鞋底细节，单纯静物图很难支撑转化。');
-  if (!points.length) points.push('该品已进入榜单，说明货品或素材具备一定跑量基础；复盘重点应放在前三秒是否同时讲清商品全貌、核心利益点和购买理由。');
-  const dataLine = `当前在「${category}」下的消耗为${spend}${typeof spend === 'number' ? '万' : ''}，ROI为${roi}；${tags.length ? '主要可归因为：' + tags.join(' / ') + '。' : '建议继续观察素材钩子与成交链路。'}`;
-  return `${dataLine}${points.slice(0, 2).join('')}`;
+  const category = p.category || '当前类目';
+  const proof = compactList([...s.motifs, ...s.materials, ...s.functions], '商品全貌、核心卖点、使用效果');
+  const scene = compactList(s.scenes, compactList(s.styles, '目标人群的真实使用场景'));
+  const offer = compactList(s.offers, '价格权益或购买理由');
+  const rankLine = `这条素材对应「${name}」，在「${category}」中排名#${p.rank || '-'}，消耗${spend}${typeof spend === 'number' ? '万' : ''}，ROI ${roi}。`;
+  const valueLine = `它的有效信息不应只归为「${s.noun}」，而是要围绕「${proof}」和「${scene}」建立购买理由；如果画面没有把这些证据拍清楚，榜单数据很难转化为可复制素材方法。`;
+  const actionLine = `复盘时建议重点看三处：首帧是否一眼识别${s.noun}，中段是否证明${proof}，结尾是否用${offer}把用户推向点击。`;
+  return rankLine + valueLine + actionLine;
 }
 function scriptInsight(p) {
   const name = p.name || '';
-  const tags = productTags(name);
-  let opening = '0-3秒：直接给商品全貌和最强利益点，避免先铺垫品牌空话。';
-  let middle = '3-12秒：用2-3个镜头证明卖点，例如细节特写、使用/上身效果、前后对比或用户场景。';
-  let close = '12秒后：用价格锚点、限时权益、适用人群或场景收口，引导点击进入商品页。';
-  if (tags.includes('寓意信任')) {
-    opening = '0-3秒：用“送礼/转运/平安/招财”等具体需求开场，并立即露出饰品全貌。';
-    middle = '3-12秒：补材质、工艺、寓意来源和佩戴/送礼场景，建立信任而不是只堆玄学词。';
-    close = '12秒后：落到适合谁买、什么场景戴/送、到手包装和价格门槛。';
-  } else if (tags.includes('防晒出行') || tags.includes('夏季舒适')) {
-    opening = '0-3秒：先抛夏季痛点，如晒、闷、汗、热、骑行通勤，再快速展示解决方案。';
-    middle = '3-12秒：用面料/遮挡/透气/上身动态证明“确实凉、确实遮、确实舒服”。';
-    close = '12秒后：强调适用场景和尺码/颜色选择，最后用到手价或组合权益推动转化。';
-  } else if (tags.includes('功能贴身')) {
-    opening = '0-3秒：用舒适、承托、无痕或凉感等结果型卖点开场，画面要干净可信。';
-    middle = '3-12秒：用结构细节、弹力/包裹演示、穿着场景证明功能，不建议只用口播。';
-    close = '12秒后：补尺码建议、适用体型、组合优惠和售后安心点。';
-  } else if (tags.includes('鞋履场景')) {
-    opening = '0-3秒：先展示上脚和行走动态，让用户判断鞋型和脚感。';
-    middle = '3-12秒：补鞋底、防滑、弯折、透气、轻便等证据镜头。';
-    close = '12秒后：用通勤/开车/户外等场景和价格权益收口。';
-  }
-  return `${opening} ${middle} ${close}`;
+  const s = productSignals(name);
+  const proof = compactList([...s.motifs, ...s.materials, ...s.functions], `${s.noun}细节和使用效果`);
+  const scene = compactList(s.scenes, '典型使用场景');
+  const offer = compactList(s.offers, '到手利益点');
+  const hook = s.hook;
+  return `建议按这条素材单独拆脚本：0-3秒用「${hook}」切入，画面直接给${s.noun}全貌，不要先讲泛泛品牌话；3-8秒用${proof}做证据镜头，最好包含近景特写或动态演示；8-15秒把${scene}讲清楚，让用户知道谁在什么场景需要它；最后用${offer}或价格锚点收口，形成点击理由。`;
 }
 function framePlan(p) {
-  const tags = productTags(p.name || '');
-  if (tags.includes('寓意信任')) return ['商品全貌+佩戴效果', '材质/工艺/寓意特写', '送礼或自戴场景'];
-  if (tags.includes('防晒出行')) return ['痛点场景：烈日/骑行', '遮挡面积或佩戴前后', '轻薄透气细节'];
-  if (tags.includes('夏季舒适')) return ['上身/使用全貌', '面料近景与垂感', '走动或风吹动态'];
-  if (tags.includes('功能贴身')) return ['功能结果展示', '结构/弹力细节', '舒适场景收口'];
-  if (tags.includes('鞋履场景')) return ['上脚第一眼', '鞋底弯折防滑', '行走动态场景'];
-  return ['商品全貌', '核心卖点证据', '价格/场景收口'];
+  const s = productSignals(p.name || '');
+  const proof = compactList([...s.materials, ...s.functions], '卖点证据');
+  const scene = compactList(s.scenes, '使用场景');
+  const offer = compactList(s.offers, '转化权益');
+  return [`${s.noun}全貌+首屏钩子`, `${proof}特写/演示`, `${scene}+${offer}收口`];
 }
 function colClass(col, value) {
   return `${cls(value)} ${col === '客户简称' ? 'sticky-customer' : ''}`.trim();
