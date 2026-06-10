@@ -139,6 +139,7 @@
     .report-metric-label { color:var(--muted); font-size:12px; font-weight:680; margin-bottom:8px; }
     .report-metric-value { font-size:22px; font-weight:780; color:var(--ink); margin-bottom:8px; }
     .report-metric-change { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:12px; }
+    .report-product-table td { color: var(--ink) !important; font-weight: 500; }
     .report-product-table td:first-child { white-space:normal; min-width:320px; line-height:1.45; }
     .report-diagnosis .md-body { padding:0; }
     @media (max-width: 980px) { .report-chart-row, .report-metric-grid { grid-template-columns:1fr; } }
@@ -310,24 +311,75 @@ const colors = ['#1e5aa7', '#287d8e', '#b7862f', '#7c6a52', '#52677f', '#8a9bb2'
 function currentData() { return PORTAL_DATA.byDate[state.date] || PORTAL_DATA.byDate[PORTAL_DATA.latestDate]; }
 function esc(v) { return String(v ?? '-').replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m])); }
 function fmt(value, suffix='') { if (value === null || value === undefined || value === '' || Number.isNaN(value)) return '-'; return `${value}${suffix}`; }
-function cls(v) { const s = String(v || ''); if (s.includes('-') || s.includes('↓')) return 'down'; if (s.includes('+') || s.includes('↑')) return 'up'; return 'flat'; }
+function cls(v) { const s = String(v || '').trim(); if (!s || s === '-' || s.toLowerCase() === 'nan') return 'flat'; if (s.includes('↓') || /^-\d/.test(s)) return 'down'; if (s.includes('↑') || /^\+\d/.test(s)) return 'up'; return 'flat'; }
 function shortName(name, n=32) { return name && name.length > n ? name.slice(0, n) + '…' : name; }
 function metricFromText(text, label) { const m = String(text || '').match(new RegExp(label + '\\s*([0-9.]+)')); return m ? m[1] : '-'; }
+function productTags(name) {
+  const tags = [];
+  if (/防晒|遮阳|冰袖|面罩|口罩|帽/.test(name)) tags.push('防晒出行');
+  if (/冰丝|凉感|透气|速干|夏季|薄款|网眼/.test(name)) tags.push('夏季舒适');
+  if (/桑蚕丝|亚麻|天丝|莱赛尔|新疆棉|铜氨|真丝/.test(name)) tags.push('面料背书');
+  if (/大师|师傅|开光|五台山|关公|观音|貔貅|平安|转运|招财|生肖|佛|吊坠|手串/.test(name)) tags.push('寓意信任');
+  if (/轻奢|高级|专柜|高档|定制|高奢|老钱/.test(name)) tags.push('价格锚点');
+  if (/买一送一|两件|10双|套装|组合/.test(name)) tags.push('组合促销');
+  if (/内衣|文胸|无钢圈|聚拢|收副乳|塑身|内裤|袜/.test(name)) tags.push('功能贴身');
+  if (/男士|爸爸|中老年|老人|大码/.test(name)) tags.push('明确人群');
+  if (/女|女士|妈妈|显瘦|遮肉|高腰|阔腿/.test(name)) tags.push('女性穿搭');
+  if (/鞋|布鞋|凉鞋|休闲鞋|运动鞋|驾车鞋/.test(name)) tags.push('鞋履场景');
+  return [...new Set(tags)];
+}
 function productInsight(p) {
   const name = p.name || '';
-  const hooks = [];
-  if (/防晒|冰丝|透气|凉感|夏季/.test(name)) hooks.push('季节性痛点明确，适合用「夏季即时需求」开场。');
-  if (/大师|师傅|国风|新中式|佛|吊坠|转运|关公/.test(name)) hooks.push('信任背书和文化符号较强，建议突出佩戴场景与寓意。');
-  if (/男士|爸爸|老人|中老年/.test(name)) hooks.push('人群指向清晰，素材可前置年龄/身份标签降低理解成本。');
-  if (/无钢圈|内衣|文胸|塑身|内裤|袜/.test(name)) hooks.push('功能卖点强，建议用对比镜头呈现舒适、塑形或凉感。');
-  if (!hooks.length) hooks.push('该商品已产生可观消耗，说明素材或货品具备跑量潜力，可重点复盘前三秒钩子。');
-  hooks.push(`当前消耗 ${fmt(p.spend, '万')}，ROI ${fmt(p.roi)}，曝光创意 ${fmt(p.creativeCount, '个')}。`);
-  return hooks.join('');
+  const tags = productTags(name);
+  const spend = p.spend !== undefined ? p.spend : '-';
+  const roi = p.roi !== undefined ? p.roi : '-';
+  const category = p.category || '该类目';
+  const points = [];
+  if (tags.includes('防晒出行')) points.push('主卖点应聚焦「户外暴晒/通勤骑行/旅游出行」的即时痛点，首屏最好直接出现遮挡面积或佩戴前后对比。');
+  if (tags.includes('夏季舒适')) points.push('素材需要把“凉、薄、透气”拍成可感知证据，例如手揉面料、风吹起伏、近景网眼/垂感，而不是只打字幕。');
+  if (tags.includes('面料背书')) points.push('面料词是该品的信任资产，建议用吊牌、成分特写、手感拉伸、上身垂坠四类镜头建立高客单合理性。');
+  if (tags.includes('寓意信任')) points.push('这类饰品转化依赖“寓意+送礼/自戴理由”，脚本应先讲场景和寓意，再落到材质细节，避免只拍静物导致信任不足。');
+  if (tags.includes('价格锚点')) points.push('“轻奢/专柜/高档”需要有质感证据：包装、细节、面料光泽、上身完整度，否则容易被用户感知为空泛高价。');
+  if (tags.includes('组合促销')) points.push('组合装要尽早讲清数量和到手感，建议在前 5 秒给出“买几得几/一套解决什么问题”，降低价格理解成本。');
+  if (tags.includes('功能贴身')) points.push('贴身品类需要用功能场景建立安全感，如承托、无痕、凉感、抗菌或舒适包裹；画面表达要克制但证据充分。');
+  if (tags.includes('鞋履场景')) points.push('鞋履素材建议补足脚感证据：弯折、防滑、透气、走路动态和鞋底细节，单纯静物图很难支撑转化。');
+  if (!points.length) points.push('该品已进入榜单，说明货品或素材具备一定跑量基础；复盘重点应放在前三秒是否同时讲清商品全貌、核心利益点和购买理由。');
+  const dataLine = `当前在「${category}」下的消耗为${spend}${typeof spend === 'number' ? '万' : ''}，ROI为${roi}；${tags.length ? '主要可归因为：' + tags.join(' / ') + '。' : '建议继续观察素材钩子与成交链路。'}`;
+  return `${dataLine}${points.slice(0, 2).join('')}`;
 }
 function scriptInsight(p) {
   const name = p.name || '';
-  const opening = /防晒|冰丝|透气|凉感/.test(name) ? '痛点开场：高温、闷汗、晒黑等夏季问题。' : /大师|师傅|佛|吊坠|转运/.test(name) ? '信任开场：推荐背书、寓意解释、佩戴效果。' : '商品直给：先展示品相和上身/使用效果。';
-  return `${opening} 中段建议补充 2-3 个卖点证据，结尾用价格/赠品/限时机制收口。内部复盘时优先看首 3 秒是否出现商品全貌、核心利益点和人群标签。`;
+  const tags = productTags(name);
+  let opening = '0-3秒：直接给商品全貌和最强利益点，避免先铺垫品牌空话。';
+  let middle = '3-12秒：用2-3个镜头证明卖点，例如细节特写、使用/上身效果、前后对比或用户场景。';
+  let close = '12秒后：用价格锚点、限时权益、适用人群或场景收口，引导点击进入商品页。';
+  if (tags.includes('寓意信任')) {
+    opening = '0-3秒：用“送礼/转运/平安/招财”等具体需求开场，并立即露出饰品全貌。';
+    middle = '3-12秒：补材质、工艺、寓意来源和佩戴/送礼场景，建立信任而不是只堆玄学词。';
+    close = '12秒后：落到适合谁买、什么场景戴/送、到手包装和价格门槛。';
+  } else if (tags.includes('防晒出行') || tags.includes('夏季舒适')) {
+    opening = '0-3秒：先抛夏季痛点，如晒、闷、汗、热、骑行通勤，再快速展示解决方案。';
+    middle = '3-12秒：用面料/遮挡/透气/上身动态证明“确实凉、确实遮、确实舒服”。';
+    close = '12秒后：强调适用场景和尺码/颜色选择，最后用到手价或组合权益推动转化。';
+  } else if (tags.includes('功能贴身')) {
+    opening = '0-3秒：用舒适、承托、无痕或凉感等结果型卖点开场，画面要干净可信。';
+    middle = '3-12秒：用结构细节、弹力/包裹演示、穿着场景证明功能，不建议只用口播。';
+    close = '12秒后：补尺码建议、适用体型、组合优惠和售后安心点。';
+  } else if (tags.includes('鞋履场景')) {
+    opening = '0-3秒：先展示上脚和行走动态，让用户判断鞋型和脚感。';
+    middle = '3-12秒：补鞋底、防滑、弯折、透气、轻便等证据镜头。';
+    close = '12秒后：用通勤/开车/户外等场景和价格权益收口。';
+  }
+  return `${opening} ${middle} ${close}`;
+}
+function framePlan(p) {
+  const tags = productTags(p.name || '');
+  if (tags.includes('寓意信任')) return ['商品全貌+佩戴效果', '材质/工艺/寓意特写', '送礼或自戴场景'];
+  if (tags.includes('防晒出行')) return ['痛点场景：烈日/骑行', '遮挡面积或佩戴前后', '轻薄透气细节'];
+  if (tags.includes('夏季舒适')) return ['上身/使用全貌', '面料近景与垂感', '走动或风吹动态'];
+  if (tags.includes('功能贴身')) return ['功能结果展示', '结构/弹力细节', '舒适场景收口'];
+  if (tags.includes('鞋履场景')) return ['上脚第一眼', '鞋底弯折防滑', '行走动态场景'];
+  return ['商品全貌', '核心卖点证据', '价格/场景收口'];
 }
 function colClass(col, value) {
   return `${cls(value)} ${col === '客户简称' ? 'sticky-customer' : ''}`.trim();
@@ -420,7 +472,8 @@ function openCreative(p) {
   document.getElementById('downloadBtn').setAttribute('download', `${p.name}.mp4`);
   document.getElementById('insightText').textContent = productInsight(p);
   document.getElementById('scriptText').textContent = scriptInsight(p);
-  document.getElementById('frameGrid').innerHTML = [0.8, 2.5, 5.0].map((t, i) => `<button class="frame-btn" data-time="${t}"><b>${t.toFixed(1)}s</b><span>${['商品亮相','卖点展开','转化收口'][i]}</span></button>`).join('');
+  const frames = framePlan(p);
+  document.getElementById('frameGrid').innerHTML = [0.8, 2.5, 5.0].map((t, i) => `<button class="frame-btn" data-time="${t}"><b>${t.toFixed(1)}s</b><span>${frames[i]}</span></button>`).join('');
   document.querySelectorAll('.frame-btn').forEach(btn => btn.onclick = () => { video.currentTime = Number(btn.dataset.time); video.play(); });
   document.getElementById('copyUrlBtn').onclick = () => navigator.clipboard?.writeText(p.url);
   modal.classList.add('open');
@@ -596,8 +649,8 @@ function renderExternalProducts() {
 }
 function openExternalCreative(p) {
   openCreative(p);
-  document.getElementById('insightText').textContent = `该商品在当前类目具备跑量参考价值，消耗位于${spendBucket(p.spend)}区间，ROI约${roiBucket(p.roi)}。建议重点复盘首屏商品呈现、核心卖点和转化口径。`;
-  document.getElementById('scriptText').textContent = '外部版仅提供脱敏后的创意参考，具体投放数据请以客户自身账户日报为准。';
+  document.getElementById('insightText').textContent = productInsight(p);
+  document.getElementById('scriptText').textContent = scriptInsight(p);
 }
 function renderExternalClient(clientName) {
   const data = authData();
