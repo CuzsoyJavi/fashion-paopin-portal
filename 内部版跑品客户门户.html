@@ -214,15 +214,6 @@
     .dev-row input { border: 1px solid var(--line); border-radius: 12px; padding: 10px; font: inherit; }
     .dev-row button, .dev-card button { border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; cursor: pointer; background: rgba(23,32,51,.08); }
 
-
-    .account-board { margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,255,255,.78); box-shadow: 0 10px 28px rgba(30,45,70,.06); }
-    .account-board-title { margin: 0 0 12px; font-weight: 780; color: var(--ink); }
-    .account-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .account-row { display: grid; grid-template-columns: minmax(180px, 1fr) 180px auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid rgba(23,32,51,.08); border-radius: 14px; background: #fff; }
-    .account-row span { color: var(--muted); font-size: 12px; }
-    .account-row b { font-weight: 760; }
-    .copy-pass-btn { border: 0; border-radius: 999px; padding: 8px 12px; color: #fff; background: var(--ink); cursor: pointer; font: inherit; font-size: 12px; }
-
   </style>
 </head>
 <body class="auth-locked">
@@ -301,7 +292,6 @@
 
       <section class="section" id="vip">
         <div class="section-head"><div><h2>客户日报目录</h2><div class="section-desc">默认折叠所有客户日报；销售按客户点击展开查看图表化日报内容。</div></div></div>
-        <div class="account-board"><div class="account-board-title">外部商家客户账号</div><div class="account-grid" id="accountGrid"></div></div>
         <div class="client-grid" id="clientGrid"></div>
       </section>
 
@@ -634,16 +624,9 @@ function renderDevUsers() {
   list.querySelectorAll('[data-dev-pass]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); arr[Number(input.dataset.devPass)].password = input.value; setMerchantAccounts(arr); });
 }
 function openDevModal() { document.getElementById('devModal').classList.add('open'); }
-const INTERNAL_ACCOUNT_LIST = [{"username": "杭州盈阳", "password": "ttz123456", "clientName": "杭州盈阳", "aliases": ["杭", "杭州", "盈", "盈阳", "hangzhou", "hangzhouyingyang", "hzyy", "yingyang"]}, {"username": "杭州麦量", "password": "mailiang888888", "clientName": "杭州麦量", "aliases": ["杭", "杭州", "麦", "麦量", "hangzhou", "hangzhoumailiang", "hzml", "mailiang"]}, {"username": "深圳载亿", "password": "145999ba", "clientName": "深圳载亿", "aliases": ["深", "深圳", "载", "载亿", "shenzhen", "shenzhenzaiyi", "szzy", "zaiyi"]}, {"username": "厦门秋成", "password": "Lqkj8888", "clientName": "厦门秋成", "aliases": ["厦", "厦门", "秋", "秋成", "xiamen", "xiamenqiucheng", "xmqc", "qiucheng"]}, {"username": "杭州与象", "password": "yx17638138856", "clientName": "杭州与象", "aliases": ["杭", "杭州", "与", "与象", "hangzhou", "hangzhouyuxiang", "hzyx", "yuxiang"]}, {"username": "俞俊", "password": "dahe2026", "clientName": "俞俊", "aliases": ["俞", "俞俊", "yujun", "yj"]}, {"username": "邀购", "password": "Yao123456.", "clientName": "邀购", "aliases": ["邀", "邀购", "yaogou", "yg"]}, {"username": "晴暮", "password": "blbmskj888.", "clientName": "晴暮", "aliases": ["晴", "晴暮", "qingmu", "qm"]}, {"username": "小鹅", "password": "xiaoe123456", "clientName": "小鹅", "aliases": ["小", "小鹅", "鹅", "xiaoe", "xeds", "xe"]}, {"username": "二两", "password": "Erliang666", "clientName": "二两", "aliases": ["二", "二两", "erliang", "el"]}];
-function renderInternalAccountBoard() {
-  const grid = document.getElementById('accountGrid');
-  if (!grid) return;
-  grid.innerHTML = INTERNAL_ACCOUNT_LIST.map(a => `<div class="account-row"><div><span>用户名</span><br><b>${esc(a.username)}</b></div><div><span>密码</span><br><b>${esc(a.password)}</b></div><button class="copy-pass-btn" data-pass="${esc(a.password)}">复制密码</button></div>`).join('');
-  grid.querySelectorAll('.copy-pass-btn').forEach(btn => btn.onclick = () => navigator.clipboard?.writeText(btn.dataset.pass));
-}
 function setupAuth() {
   document.getElementById('internalLoginBtn').onclick = () => {
-    if (document.getElementById('internalPassword').value === INTERNAL_PASSWORD) { unlockPortal('internal'); renderInternalAccountBoard(); }
+    if (document.getElementById('internalPassword').value === INTERNAL_PASSWORD) unlockPortal('internal');
     else document.getElementById('authError').textContent = '内部访问密码错误。';
   };
 }
