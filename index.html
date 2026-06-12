@@ -82,7 +82,7 @@
     .link-badge.shop { background: #1b7c83; }
     .panel { padding: 22px; }
     #fluctuationCards, #fluctuationCards > .card { width:100%; display:block; }
-    .table-wrap, .md-table-wrap { overflow-x: auto; overflow-y: hidden; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.55); width:100%; max-width:100%; }
+    .table-wrap, .md-table-wrap { display:block; overflow-x: auto; overflow-y: hidden; border-radius: 20px; border: 1px solid var(--line); background: rgba(255,255,255,.55); width:100%; max-width:100%; min-width:0; -webkit-overflow-scrolling: touch; }
     table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
     th, td { padding: 12px 14px; border-bottom: 1px solid rgba(23,32,51,.08); text-align: left; white-space: nowrap; vertical-align: top; background: rgba(255,255,255,.78); }
     th { color: var(--muted); font-weight: 720; background: rgba(244,241,233,.96); position: sticky; top: 0; z-index: 1; }
@@ -90,6 +90,10 @@
     th.sticky-customer { z-index: 4; background: #f4f1e9; }
     td.sticky-customer { background: #fff; font-weight: 680; }
     tr:last-child td { border-bottom: none; }
+    .md-table-wrap table, .table-wrap table { width:max-content; min-width:100%; }
+    .md-table-wrap th, .md-table-wrap td { white-space:nowrap; }
+    .md-table-wrap td:first-child { white-space:normal; min-width:220px; max-width:420px; line-height:1.45; }
+
     .up { color: var(--green); font-weight: 760; }
     .down { color: var(--red); font-weight: 760; }
     .flat { color: var(--muted); }
@@ -122,15 +126,15 @@
     .product-meta span { display:block; color:var(--muted); font-size:10px; }
     .product-meta b { display:block; margin-top:3px; font-size:13px; }
     .client-grid { display:grid; grid-template-columns: 1fr; gap:14px; width:100%; }
-    .client-card { padding:22px; }
+    .client-card { padding:22px; min-width:0; max-width:100%; overflow:hidden; }
     .client-head { display:flex; justify-content:space-between; align-items:start; gap:18px; margin-bottom:18px; }
     .client-name { font-size:22px; font-weight:780; letter-spacing:-.03em; }
     .risk { padding:7px 10px; border-radius:999px; background:#fff1f1; color:var(--red); font-weight:760; font-size:12px; }
     .trend-chart { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius:18px; background:linear-gradient(180deg,#fff,rgba(248,250,252,.86)); overflow:hidden; }
     .trend-chart img { display:block; width:100%; height:auto; border-radius:14px; }
-    .report-shell { display:grid; gap:18px; }
+    .report-shell { display:grid; gap:18px; min-width:0; max-width:100%; }
     .report-chart-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .report-chart-card, .report-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 28px rgba(30,45,70,.06); }
+    .report-chart-card, .report-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:20px; box-shadow:0 10px 28px rgba(30,45,70,.06); min-width:0; max-width:100%; overflow:hidden; }
     .report-card-title { display:flex; align-items:center; gap:10px; margin:0 0 16px; font-weight:780; color:var(--ink); }
     .report-card-title::after { content:''; flex:1; height:1px; background:linear-gradient(to right, rgba(23,32,51,.12), transparent); }
     .report-metric-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
@@ -143,9 +147,9 @@
     .report-product-table td:first-child { white-space:normal; min-width:320px; line-height:1.45; }
     .report-diagnosis .md-body { padding:0; }
     @media (max-width: 980px) { .report-chart-row, .report-metric-grid { grid-template-columns:1fr; } }
-    details.raw-details { margin-top: 16px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.72); overflow:hidden; }
+    details.raw-details { margin-top: 16px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.72); overflow:hidden; min-width:0; max-width:100%; }
     details.raw-details > summary { cursor:pointer; padding:14px 16px; font-weight:760; color:var(--ink); }
-    .md-body { padding: 18px; color:#263044; line-height:1.72; font-size:13px; }
+    .md-body { padding: 18px; color:#263044; line-height:1.72; font-size:13px; min-width:0; max-width:100%; overflow-wrap:anywhere; }
     .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 { margin: 20px 0 10px; font-family: var(--serif); letter-spacing:-.02em; }
     .md-body p { margin: 8px 0; }
     .md-body blockquote { margin: 12px 0; padding: 12px 14px; border-left: 3px solid rgba(30,90,167,.36); background: rgba(234,242,255,.5); border-radius: 10px; color:var(--muted); }
