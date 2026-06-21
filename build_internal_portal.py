@@ -361,6 +361,65 @@ def build_client(path):
     }
 
 
+FOUNDATION_METRICS = ["在线创意唯一性ID数", "曝光创意唯一性ID数", "全新创意唯一性ID数"]
+
+
+def foundation_total(client, metric):
+    total = 0
+    for link_data in client.get("basics", {}).values():
+        total += num((link_data.get(metric) or {}).get("value")) or 0
+    return total
+
+
+def product_action_insights(client):
+    products = []
+    for row in client.get("products", []):
+        spend = num(row.get("消耗(万元)")) or 0
+        roi_value = num(row.get("下单ROI"))
+        if roi_value is None:
+            continue
+        products.append({
+            "name": row.get("推广产品ID", "").strip("()") or row.get("推广产品ID", ""),
+            "link": row.get("link", ""),
+            "spend": spend,
+            "roi": roi_value,
+            "cost": num(row.get("下单成本(元)")),
+        })
+    scale = sorted([p for p in products if p["spend"] >= 0.1 and p["roi"] >= 2.0], key=lambda x: (-x["spend"], -x["roi"]))[:5]
+    watch = sorted([p for p in products if p["roi"] < 1.2 or (p["spend"] >= 0.1 and p["roi"] < 1.5)], key=lambda x: (-x["spend"], x["roi"]))[:5]
+    return {
+        "scale": scale,
+        "watch": watch,
+        "summary": {
+            "scaleCount": len(scale),
+            "watchCount": len(watch),
+        }
+    }
+
+
+def enrich_clients(by_date):
+    for bucket in by_date.values():
+        clients = bucket.get("clients", [])
+        if not clients:
+            continue
+        benchmarks = {}
+        for metric in FOUNDATION_METRICS:
+            values = [foundation_total(client, metric) for client in clients]
+            benchmarks[metric] = round(sum(values) / len(values), 1) if values else 0
+        bucket["foundationBenchmark"] = benchmarks
+        for client in clients:
+            totals = {metric: foundation_total(client, metric) for metric in FOUNDATION_METRICS}
+            client["foundationBenchmark"] = {
+                metric: {
+                    "value": totals[metric],
+                    "benchmark": benchmarks[metric],
+                    "diff": round(totals[metric] - benchmarks[metric], 1),
+                }
+                for metric in FOUNDATION_METRICS
+            }
+            client["productInsights"] = product_action_insights(client)
+
+
 def build_data():
     internal_files = sorted(DATA_DIR.glob("内部all-*.md"))
     client_files = sorted(p for p in DATA_DIR.glob("*_日报_*.md") if p.is_file())
@@ -377,6 +436,7 @@ def build_data():
         clients = [build_client(p) for p in client_by_date.get(date, [])]
         source_files = [internal["source"]] + [client["source"] for client in clients]
         by_date[date] = {"internal": internal, "clients": clients, "sourceFiles": source_files}
+    enrich_clients(by_date)
 
     dates = sorted(by_date)[-3:]
     by_date = {date: by_date[date] for date in dates}
