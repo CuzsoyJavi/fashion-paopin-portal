@@ -237,15 +237,24 @@ def parse_products(text):
 
 def normalize_fluctuation_rows(rows):
     out = []
+    alias_map = {
+        "ROI环比变化率": "下单ROI日环比",
+        "CTCVR环比变化率": "CTCVR日环比",
+        "出价环比变化率": "目标出价日环比",
+        "创意ID环比变化率": "曝光创意ID日环比",
+    }
     for row in rows:
         item = dict(row)
         for key in list(item):
             if key in {"排名", "客户简称", "链路", "曝光创意唯一性ID数"}:
                 continue
-            if "变化率" in key:
+            if "变化率" in key or "日环比" in key:
                 item[key] = round_percent(item[key])
             elif any(token in key for token in ["消耗", "ROI", "CTCVR", "单价", "出价"]):
                 item[key] = round_cell(item[key])
+        for source_key, target_key in alias_map.items():
+            if source_key in item and not item.get(target_key):
+                item[target_key] = item[source_key]
         if "客户简称" in item:
             item.setdefault("下单ROI日环比", "")
             item.setdefault("CTCVR日环比", "")
@@ -471,6 +480,10 @@ HTML = r'''<!doctype html>
     th.sticky-customer, td.sticky-customer { position: sticky; left: 0; z-index: 3; min-width: 180px; max-width: 260px; box-shadow: 10px 0 14px rgba(23,32,51,.06); }
     th.sticky-customer { z-index: 4; background: #f4f1e9; }
     td.sticky-customer { background: #fff; font-weight: 680; }
+    .customer-cell { display:flex; align-items:center; gap:8px; min-width:0; }
+    .customer-cell span { overflow:hidden; text-overflow:ellipsis; }
+    .diagnose-btn { flex:0 0 auto; border:1px solid rgba(30,90,167,.24); background:rgba(234,242,255,.86); color:var(--blue); border-radius:999px; padding:4px 8px; font:inherit; font-size:11px; font-weight:760; cursor:pointer; }
+    .diagnose-btn:hover { background:rgba(30,90,167,.12); }
     tr:last-child td { border-bottom: none; }
     .up { color: var(--green); font-weight: 760; }
     .down { color: var(--red); font-weight: 760; }
@@ -644,10 +657,31 @@ function scriptInsight(p) {
 function colClass(col, value) {
   return `${cls(value)} ${col === '客户简称' ? 'sticky-customer' : ''}`.trim();
 }
-function tableHTML(rows, columns) {
+function diagnosisPrompt(customer) {
+  return `请帮我根据skill（customer-global-diagnosis）进行针对${customer}客户的异动诊断`;
+}
+async function openDiagnosis(customer) {
+  const prompt = diagnosisPrompt(customer);
+  try { await navigator.clipboard?.writeText(prompt); } catch(e) {}
+  window.open('https://adata.woa.com/bi/chatbi', '_blank', 'noopener,noreferrer');
+}
+function tableHTML(rows, columns, options = {}) {
   if (!rows || !rows.length) return '<tbody><tr><td>暂无数据</td></tr></tbody>';
   const cols = columns || Object.keys(rows[0]);
-  return `<thead><tr>${cols.map(c => `<th class="${c === '客户简称' ? 'sticky-customer' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td class="${colClass(c, r[c])}">${esc(r[c] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  return `<thead><tr>${cols.map(c => `<th class="${c === '客户简称' ? 'sticky-customer' : ''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => {
+    const value = r[c] ?? '';
+    const content = options.diagnosis && c === '客户简称' ? `<div class="customer-cell"><span>${esc(value)}</span><button type="button" class="diagnose-btn" data-customer="${esc(value)}">前往诊断</button></div>` : esc(value);
+    return `<td class="${colClass(c, value)}">${content}</td>`;
+  }).join('')}</tr>`).join('')}</tbody>`;
+}
+function wireDiagnosisButtons() {
+  document.querySelectorAll('.diagnose-btn').forEach(btn => {
+    btn.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openDiagnosis(btn.dataset.customer || '');
+    };
+  });
 }
 
 function renderDateControls() {
@@ -680,8 +714,10 @@ function renderFluctuation() {
 function renderAnomalyTable() {
   const data = currentData();
   const rows = data.internal.fluctuation[state.anomalyView] || [];
-  const cols = ['排名', '客户简称', '消耗(万元)', '消耗环比变化量', '消耗环比变化率', '消耗周同比变化率', '下单ROI', '下单ROI日环比', 'CTCVR(‱)', 'CTCVR日环比', '目标出价(元)', '目标出价日环比', '曝光创意唯一性ID数', '曝光创意ID日环比'];
-  document.getElementById('anomalyTable').innerHTML = tableHTML(rows, cols);
+  const cols = ['排名', '客户简称', '消耗(万元)', '消耗环比变化量', '消耗环比变化率', '消耗周同比变化率', '下单ROI', '下单ROI日环比', 'CTCVR(‱)', 'CTCVR日环比', '下单单价(元)', '目标出价(元)', '目标出价日环比', '曝光创意唯一性ID数', '曝光创意ID日环比'];
+  const diagnosis = ['cidDown', 'shopDown'].includes(state.anomalyView);
+  document.getElementById('anomalyTable').innerHTML = tableHTML(rows, cols, { diagnosis });
+  if (diagnosis) wireDiagnosisButtons();
 }
 function renderTreemaps() {
   const data = currentData();
