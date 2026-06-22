@@ -255,6 +255,8 @@ def normalize_fluctuation_rows(rows):
         for source_key, target_key in alias_map.items():
             if source_key in item and not item.get(target_key):
                 item[target_key] = item[source_key]
+            if source_key in item:
+                item.pop(source_key, None)
         if "客户简称" in item:
             item.setdefault("下单ROI日环比", "")
             item.setdefault("CTCVR日环比", "")
@@ -768,7 +770,8 @@ function renderFluctuation() {
   const data = currentData();
   const box = document.getElementById('fluctuationCards');
   const running = data.internal.fluctuation.running || [];
-  box.innerHTML = `<div class="card panel"><div class="metric-title" style="margin-bottom:12px;">跑品客户链路波动</div><div class="table-wrap"><table>${tableHTML(running)}</table></div></div>`;
+  const cols = ['链路', '消耗(万元)', '消耗环比变化率', '消耗周同比变化率', '曝光创意唯一性ID数', '曝光创意ID日环比', '创意ID周同比变化率'];
+  box.innerHTML = `<div class="card panel"><div class="metric-title" style="margin-bottom:12px;">跑品客户链路波动</div><div class="table-wrap"><table>${tableHTML(running, cols)}</table></div></div>`;
   renderAnomalyTable();
 }
 function renderAnomalyTable() {
