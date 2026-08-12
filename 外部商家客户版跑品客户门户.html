@@ -225,9 +225,49 @@
     .fake-filter { display: none; margin-top: 10px; padding: 12px; border-radius: 16px; color: var(--muted); background: rgba(244,241,233,.72); font-size: 12px; line-height: 1.6; }
     .fake-filter.show { display: block; }
 
+    /* ===== 浏览时长徽标 & 访问统计 ===== */
+    .visit-badge {
+      position: fixed; top: 16px; right: 18px; z-index: 90;
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 10px 30px rgba(30,45,70,.12);
+      backdrop-filter: blur(14px);
+      font-size: 12px; color: var(--muted);
+      max-width: min(92vw, 460px);
+    }
+    .visit-badge[hidden] { display: none; }
+    .visit-badge .vb-user { font-weight: 780; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    .visit-badge .vb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex: 0 0 auto; box-shadow: 0 0 0 3px rgba(8,127,91,.14); }
+    .visit-badge .vb-dot.idle { background: var(--gold); box-shadow: 0 0 0 3px rgba(183,134,47,.16); }
+    .visit-badge .vb-item { white-space: nowrap; }
+    .visit-badge .vb-item b { color: var(--ink); font-family: var(--mono); font-weight: 720; margin-left: 3px; }
+    .visit-badge .vb-sep { width: 1px; height: 15px; background: var(--line); flex: 0 0 auto; }
+    @media (max-width: 980px) {
+      .visit-badge { top: auto; bottom: 14px; right: 12px; left: 12px; justify-content: center; flex-wrap: wrap; gap: 8px; }
+    }
+    .vs-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+    .vs-sum { padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); }
+    .vs-sum span { display: block; color: var(--muted); font-size: 12px; font-weight: 650; }
+    .vs-sum b { display: block; margin-top: 8px; font-size: 27px; font-weight: 780; letter-spacing: -.04em; }
+    .vs-sum i { display: block; margin-top: 4px; font-style: normal; color: var(--muted); font-size: 11px; }
+    .vs-hint { padding: 14px 4px 2px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .vs-bar { height: 7px; border-radius: 999px; background: rgba(23,32,51,.08); overflow: hidden; min-width: 84px; }
+    .vs-bar i { display: block; height: 100%; border-radius: 999px; background: var(--blue); }
+    .vs-none { color: var(--muted); }
+    @media (max-width: 980px) { .vs-summary { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
   </style>
 </head>
 <body class="auth-locked">
+  <div class="visit-badge" id="visitBadge" hidden>
+    <span class="vb-dot" id="vbDot"></span>
+    <span class="vb-user" id="vbUser">—</span>
+    <span class="vb-sep"></span>
+    <span class="vb-item">今日 <b id="vbToday">—</b></span>
+    <span class="vb-item">本次 <b id="vbSession">00:00</b></span>
+  </div>
 
   <div class="auth-shell" id="authShell" aria-modal="true" role="dialog">
     <div class="auth-card">
@@ -706,57 +746,8 @@ function renderExternalClient(clientName) {
   document.getElementById('clientGrid').innerHTML = client ? `<article class="card client-card">${renderClientReport(client, 0, 'external')}</article>` : '<div class="card panel">未找到该客户日报。</div>';
   if (client) renderReportCharts(client, 0, 'external');
 }
-/* ===== 外部商家访问埋点（方案B：轻量数据接收点） =====
- * 配置：把 CLOUDBASE 的 HTTP 云函数地址填到 VISIT_ENDPOINT。
- * 留空时自动降级为浏览器 localStorage（仅本地可见，集中统计需云端）。
- * 不上报明文密码，仅记录 username/clientName/issueId/session 与时间。
- */
-const VISIT_ENDPOINT = ''; // 例：https://xxx.apigw.com/portal-visit
-const VISIT_HEARTBEAT_MS = 30000;
-let __visit = null;
-function __visitNow(){ return new Date().toISOString(); }
-function __visitPost(payload){
-  if (!VISIT_ENDPOINT) return Promise.resolve();
-  try { return fetch(VISIT_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload), keepalive:true }).catch(()=>{}); }
-  catch(e){ return Promise.resolve(); }
-}
-function __visitLocalPush(rec){
-  try {
-    const key = 'paopinVisitLog';
-    const log = JSON.parse(localStorage.getItem(key) || '[]');
-    log.push(rec);
-    localStorage.setItem(key, JSON.stringify(log.slice(-500)));
-  } catch(e){}
-}
-function startVisitTracking(clientName, username, issueId) {
-  const sessionId = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-  const loginAt = __visitNow();
-  __visit = { clientName, username, issueId, sessionId, loginAt, lastPing: Date.now() };
-  const rec = { type:'login', clientName, username, issueId, sessionId, loginAt };
-  __visitPost(rec);
-  __visitLocalPush(rec);
-  __visit._timer = setInterval(() => {
-    if (!__visit) return;
-    __visit.lastPing = Date.now();
-    __visitPost({ type:'heartbeat', clientName, username, issueId, sessionId, at: __visitNow() });
-  }, VISIT_HEARTBEAT_MS);
-  const flush = () => {
-    if (!__visit) return;
-    clearInterval(__visit._timer);
-    const durationSec = Math.max(1, Math.round((Date.now() - new Date(__visit.loginAt).getTime())/1000));
-    const rec = { type:'leave', clientName, username, issueId, sessionId, loginAt: __visit.loginAt, durationSec, leftAt: __visitNow() };
-    __visitPost(rec);
-    __visitLocalPush(rec);
-    __visit = null;
-  };
-  window.addEventListener('beforeunload', flush);
-  window.addEventListener('pagehide', flush);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
-}
 function enterExternal(clientName) {
   unlockPortal('external');
-  const username = (document.getElementById('merchantUsername') && document.getElementById('merchantUsername').value.trim()) || clientName;
-  startVisitTracking(clientName, username, state.date);
   state.externalClientName = clientName;
   state.productLink = 'CID';
   state.productCategory = '全部';
@@ -775,9 +766,192 @@ function setupAuth() {
     const username = document.getElementById('merchantUsername').value.trim();
     const password = document.getElementById('merchantPassword').value;
     const account = getMerchantAccounts().find(a => a.username === username && a.password === password);
-    if (account) enterExternal(account.clientName || account.username);
+    if (account) {
+      const shown = account.clientName || account.username;
+      enterExternal(shown);
+      startVisitTracking(shown, { slugSource: shown, report: true });
+    }
     else document.getElementById('authError').textContent = '商家用户名或密码错误。';
   };
+}
+
+/* ===== PORTAL VISIT TRACKER v1 ===== */
+/* 云端计数器：abacus.jasoncameron.dev（免注册 / CORS 全开 / 限流 30 req per 10s per IP）
+ * 1 个计数 = 1 分钟活跃时长。key 必须是 ASCII，故中文客户名映射为拼音 slug。 */
+const VISIT_API = 'https://abacus.jasoncameron.dev';
+const VISIT_NS = 'paopin-portal-2026';
+const VISIT_SLUG = {
+  '二两': 'erliang', '邀购': 'yaogou', '晴暮': 'qingmu', '俞俊': 'yujun', '小鹅': 'xiaoe',
+  '厦门秋成': 'xmqc', '杭州与象': 'hzyx', '杭州盈阳': 'hzyy', '杭州麦量': 'hzml', '深圳载亿': 'szzy'
+};
+const VISIT_MINUTE_SEC = 60;      // 攒满多少「活跃秒」记 1 分钟
+const VISIT_ACTIVE_WINDOW = 60000; // 多久内有动作算活跃
+
+function visitSlug(name) {
+  const key = String(name || '').trim();
+  if (VISIT_SLUG[key]) return VISIT_SLUG[key];
+  const ascii = key.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+  return ascii.length >= 3 ? ascii.slice(0, 40) : 'guest-' + (ascii || 'x');
+}
+function visitDayStamp(d) {
+  const t = d || new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${t.getFullYear()}${pad(t.getMonth() + 1)}${pad(t.getDate())}`;
+}
+function visitDayLabel(stamp) {
+  return `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
+}
+function visitTotalKey(slug) { return `${slug}-total`; }
+function visitDayKey(slug, stamp) { return `${slug}-d${stamp}`; }
+
+/* 服务端限流：30 请求 / 10 秒 / IP。命中 429 时退避重试，
+ * 读取失败返回 null（区别于「确实是 0」），避免把限流误显示成 0 分钟。 */
+async function visitFetch(path, tries) {
+  const max = tries === undefined ? 4 : tries;
+  for (let attempt = 0; attempt <= max; attempt++) {
+    let res;
+    try {
+      res = await fetch(`${VISIT_API}${path}`, { cache: 'no-store', mode: 'cors' });
+    } catch (e) {
+      if (attempt === max) throw e;
+      await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+      continue;
+    }
+    if (res.status === 404) return 0;        // key 尚未创建 = 真实的 0
+    if (res.status === 429) {
+      if (attempt === max) throw new Error('HTTP 429');
+      const wait = Number(res.headers.get('Retry-After')) || 0;
+      await new Promise(r => setTimeout(r, wait > 0 ? Math.min(wait, 8000) : 2200 * (attempt + 1)));
+      continue;
+    }
+    if (!res.ok) {
+      if (attempt === max) throw new Error('HTTP ' + res.status);
+      await new Promise(r => setTimeout(r, 900 * (attempt + 1)));
+      continue;
+    }
+    const json = await res.json();
+    return Number(json && json.value) || 0;
+  }
+  throw new Error('unreachable');
+}
+function visitGet(key) {
+  return visitFetch(`/get/${VISIT_NS}/${encodeURIComponent(key)}`).catch(() => null);
+}
+function visitHit(key) {
+  return visitFetch(`/hit/${VISIT_NS}/${encodeURIComponent(key)}`, 1).catch(() => null);
+}
+/* 分批串行读取，速率压在 6 请求 / 2.2 秒 ≈ 27 req/10s，留出余量 */
+async function visitBatchGet(keys, onProgress, size = 5, gap = 2600) {
+  const out = {};
+  let done = 0;
+  for (let i = 0; i < keys.length; i += size) {
+    const slice = keys.slice(i, i + size);
+    const vals = await Promise.all(slice.map(k => visitGet(k)));
+    slice.forEach((k, idx) => { out[k] = vals[idx]; });
+    done += slice.length;
+    if (typeof onProgress === 'function') onProgress(done, keys.length);
+    if (i + size < keys.length) await new Promise(r => setTimeout(r, gap));
+  }
+  return out;
+}
+
+function visitFmtMinutes(min) {
+  const m = Math.round(Number(min) || 0);
+  if (!m) return '0 分钟';
+  if (m < 60) return `${m} 分钟`;
+  const h = Math.floor(m / 60), mm = m % 60;
+  return mm ? `${h} 小时 ${mm} 分` : `${h} 小时`;
+}
+function visitFmtClock(sec) {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  const pad = n => String(n).padStart(2, '0');
+  const h = Math.floor(s / 3600);
+  const body = `${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+  return h ? `${h}:${body}` : body;
+}
+
+/* ---------- 计时器：活跃满 60 秒 → 云端 +1 ---------- */
+const visitTracker = {
+  name: '', slug: '', report: false,
+  baselineToday: 0, committed: 0, activeSec: 0,
+  lastActAt: Date.now(), timer: null, bound: false, localKey: 'paopinVisitLocal'
+};
+
+function visitMarkActive() { visitTracker.lastActAt = Date.now(); }
+
+function visitLocalPush(minutes) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(visitTracker.localKey) || '{}');
+    const stamp = visitDayStamp();
+    raw[visitTracker.slug] = raw[visitTracker.slug] || {};
+    raw[visitTracker.slug][stamp] = (raw[visitTracker.slug][stamp] || 0) + minutes;
+    localStorage.setItem(visitTracker.localKey, JSON.stringify(raw));
+  } catch (e) {}
+}
+
+function visitRenderBadge() {
+  const box = document.getElementById('visitBadge');
+  if (!box) return;
+  box.hidden = false;
+  const userEl = document.getElementById('vbUser');
+  const todayEl = document.getElementById('vbToday');
+  const sessionEl = document.getElementById('vbSession');
+  const dotEl = document.getElementById('vbDot');
+  if (userEl) userEl.textContent = visitTracker.name;
+  if (todayEl) {
+    todayEl.textContent = visitTracker.report
+      ? visitFmtMinutes(visitTracker.baselineToday + visitTracker.committed)
+      : '本机统计';
+  }
+  if (sessionEl) sessionEl.textContent = visitFmtClock(visitTracker.committed * 60 + visitTracker.activeSec);
+  if (dotEl) {
+    const idle = Date.now() - visitTracker.lastActAt > VISIT_ACTIVE_WINDOW || document.hidden;
+    dotEl.className = 'vb-dot' + (idle ? ' idle' : '');
+  }
+}
+
+function startVisitTracking(displayName, options) {
+  const opts = options || {};
+  if (visitTracker.timer) clearInterval(visitTracker.timer);
+  visitTracker.name = displayName || '访客';
+  visitTracker.slug = visitSlug(opts.slugSource || displayName);
+  visitTracker.report = opts.report !== false;
+  visitTracker.baselineToday = 0;
+  visitTracker.committed = 0;
+  visitTracker.activeSec = 0;
+  visitTracker.lastActAt = Date.now();
+
+  if (!visitTracker.bound) {
+    ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(ev =>
+      window.addEventListener(ev, visitMarkActive, { passive: true }));
+    visitTracker.bound = true;
+  }
+
+  if (visitTracker.report) {
+    visitGet(visitDayKey(visitTracker.slug, visitDayStamp())).then(v => {
+      visitTracker.baselineToday = Number(v) || 0;
+      visitRenderBadge();
+    });
+  }
+
+  visitTracker.timer = setInterval(() => {
+    if (!document.hidden && Date.now() - visitTracker.lastActAt <= VISIT_ACTIVE_WINDOW) {
+      visitTracker.activeSec++;
+      if (visitTracker.activeSec >= VISIT_MINUTE_SEC) {
+        visitTracker.activeSec = 0;
+        visitTracker.committed++;
+        visitLocalPush(1);
+        if (visitTracker.report) {
+          const slug = visitTracker.slug;
+          visitHit(visitTotalKey(slug));
+          visitHit(visitDayKey(slug, visitDayStamp()));
+        }
+      }
+    }
+    visitRenderBadge();
+  }, 1000);
+
+  visitRenderBadge();
 }
 
 function init() { wireStaticEvents(); setupAuth(); }
