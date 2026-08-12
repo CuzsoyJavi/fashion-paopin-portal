@@ -254,16 +254,10 @@
     @media (max-width: 980px) {
       .visit-badge { top: auto; bottom: 14px; right: 12px; left: 12px; justify-content: center; flex-wrap: wrap; gap: 8px; }
     }
-    .vs-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
-    .vs-sum { padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); }
-    .vs-sum span { display: block; color: var(--muted); font-size: 12px; font-weight: 650; }
-    .vs-sum b { display: block; margin-top: 8px; font-size: 27px; font-weight: 780; letter-spacing: -.04em; }
-    .vs-sum i { display: block; margin-top: 4px; font-style: normal; color: var(--muted); font-size: 11px; }
+    .vs-line { padding: 14px 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .vs-line b { color: var(--ink); font-size: 16px; font-weight: 780; }
     .vs-hint { padding: 14px 4px 2px; color: var(--muted); font-size: 12px; line-height: 1.7; }
-    .vs-bar { height: 7px; border-radius: 999px; background: rgba(23,32,51,.08); overflow: hidden; min-width: 84px; }
-    .vs-bar i { display: block; height: 100%; border-radius: 999px; background: var(--blue); }
     .vs-none { color: var(--muted); }
-    @media (max-width: 980px) { .vs-summary { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 
   </style>
 </head>
@@ -351,12 +345,16 @@
 
 
 
+
+
+
+
       <section class="section" id="visitStats">
         <div class="section-head">
-          <div><h2>商家浏览时长统计</h2><div class="section-desc">按商家账号统计外部版门户的实际浏览时长，今日与累计双维度；数据由公共计数器服务汇总，跨设备自动合并，无需自建后端。</div></div>
+          <div><h2>商家浏览时长</h2><div class="section-desc">默认看今天：每家商家今日看了多少分钟、有没有看满 1 分钟；切到「最近 7 天明细」看每天分别看了几分钟。</div></div>
           <div class="segment"><button id="vsRefresh">刷新</button><button id="vsDetail">最近 7 天明细</button></div>
         </div>
-        <div class="vs-summary" id="vsSummary"></div>
+        <div id="vsSummary"></div>
         <div class="card panel" style="margin-top:18px;"><div class="table-wrap"><table id="vsTable"></table></div><div class="vs-hint" id="vsHint"></div></div>
       </section>
 
@@ -787,7 +785,6 @@ function visitDayStamp(d) {
 function visitDayLabel(stamp) {
   return `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`;
 }
-function visitTotalKey(slug) { return `${slug}-total`; }
 function visitDayKey(slug, stamp) { return `${slug}-d${stamp}`; }
 
 /* 服务端限流：30 请求 / 10 秒 / IP。命中 429 时退避重试，
@@ -928,9 +925,7 @@ function startVisitTracking(displayName, options) {
         visitTracker.committed++;
         visitLocalPush(1);
         if (visitTracker.report) {
-          const slug = visitTracker.slug;
-          visitHit(visitTotalKey(slug));
-          visitHit(visitDayKey(slug, visitDayStamp()));
+          visitHit(visitDayKey(visitTracker.slug, visitDayStamp()));
         }
       }
     }
@@ -985,11 +980,10 @@ async function loadVisitStats(withDetail) {
   const stamps = withDetail ? visitRecentStamps(7) : [visitDayStamp()];
   const clients = visitStatsClients();
   if (hint) {
-    hint.textContent = `☁️ 正在读取云端数据（${clients.length} 家 × ${stamps.length + 1} 项，分批请求以规避限流）…`;
+    hint.textContent = `☁️ 正在读取云端数据（${clients.length} 家 × ${stamps.length} 天，分批请求以规避限流）…`;
   }
   const keys = [];
   clients.forEach(c => {
-    keys.push(visitTotalKey(c.slug));
     stamps.forEach(s => keys.push(visitDayKey(c.slug, s)));
   });
   let map = {};
@@ -1012,14 +1006,12 @@ async function loadVisitStats(withDetail) {
       if (raw === null || raw === undefined) visitStatsState.failed++;
       perDay[s] = Number(raw) || 0;
     });
-    const rawTotal = map[visitTotalKey(c.slug)];
-    if (rawTotal === null || rawTotal === undefined) visitStatsState.failed++;
+    const span = stamps.reduce((sum, s) => sum + (perDay[s] || 0), 0);
     return {
       name: c.name,
       slug: c.slug,
-      total: Number(rawTotal) || 0,
-      totalOk: rawTotal !== null && rawTotal !== undefined,
       today: perDay[today] || 0,
+      span: span,          // 仅用于排序，不展示
       perDay: perDay
     };
   });
@@ -1031,44 +1023,39 @@ function renderVisitStats() {
   const table = document.getElementById('vsTable');
   const sum = document.getElementById('vsSummary');
   const hint = document.getElementById('vsHint');
-  if (!table || !sum) return;
-  const rows = [...visitStatsState.rows].sort((a, b) => (b.today - a.today) || (b.total - a.total));
+  if (!table) return;
+  const detail = visitStatsState.expanded;
   const stamps = visitStatsState.days;
-  const visited = rows.filter(r => r.total > 0 || r.today > 0);
-  const todayActive = rows.filter(r => r.today > 0);
-  const totalMin = rows.reduce((s, r) => s + r.total, 0);
+  const rows = [...visitStatsState.rows].sort((a, b) =>
+    detail ? (b.span - a.span) || (b.today - a.today) : (b.today - a.today));
+  const reached = rows.filter(r => r.today > 0);
   const todayMin = rows.reduce((s, r) => s + r.today, 0);
-  const maxTotal = Math.max(1, ...rows.map(r => r.total));
 
-  sum.innerHTML = [
-    { lab: '已访问商家', val: `${visited.length}<small style="font-size:14px;color:var(--muted);"> / ${rows.length}</small>`, sub: `${rows.length - visited.length} 家从未登录` },
-    { lab: '今日活跃商家', val: `${todayActive.length}<small style="font-size:14px;color:var(--muted);"> 家</small>`, sub: todayActive.length ? todayActive.map(r => r.name).join('、') : '今日暂无访问' },
-    { lab: '今日总浏览时长', val: visitFmtMinutes(todayMin), sub: `人均 ${visitFmtMinutes(todayActive.length ? todayMin / todayActive.length : 0)}` },
-    { lab: '累计总浏览时长', val: visitFmtMinutes(totalMin), sub: `人均 ${visitFmtMinutes(visited.length ? totalMin / visited.length : 0)}` }
-  ].map(c => `<div class="vs-sum"><span>${c.lab}</span><b>${c.val}</b><i>${esc(c.sub)}</i></div>`).join('');
+  if (sum) {
+    sum.innerHTML = `<div class="vs-line">今日看满 1 分钟的商家 <b>${reached.length}</b> / ${rows.length} 家，合计 <b>${visitFmtMinutes(todayMin)}</b>${reached.length ? ' · ' + esc(reached.map(r => r.name).join('、')) : ''}</div>`;
+  }
 
-  const dayCols = visitStatsState.expanded ? stamps : [];
-  const head = ['商家', '统计标识', '今日时长']
-    .concat(dayCols.map(s => visitDayLabel(s).slice(5)))
-    .concat(['累计时长', '累计占比']);
+  const head = detail
+    ? ['商家'].concat(stamps.map(s => visitDayLabel(s).slice(5)))
+    : ['商家', '今日浏览时长'];
   table.innerHTML = `<thead><tr>${head.map((h, i) => `<th class="${i === 0 ? 'sticky-customer' : ''}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => {
-    const cells = [
-      `<td class="sticky-customer">${esc(r.name)}</td>`,
-      `<td><code>${esc(r.slug)}</code></td>`,
-      `<td class="${r.today > 0 ? 'up' : 'vs-none'}">${visitFmtMinutes(r.today)}</td>`
-    ];
-    dayCols.forEach(s => {
-      const v = r.perDay[s] || 0;
-      cells.push(`<td class="${v > 0 ? '' : 'vs-none'}">${v ? visitFmtMinutes(v) : '—'}</td>`);
-    });
-    cells.push(`<td>${r.total ? visitFmtMinutes(r.total) : (r.totalOk ? '<span class="vs-none">从未登录</span>' : '<span class="vs-none">读取失败</span>')}</td>`);
-    cells.push(`<td><div class="vs-bar"><i style="width:${Math.round(r.total / maxTotal * 100)}%"></i></div></td>`);
+    const cells = [`<td class="sticky-customer">${esc(r.name)}</td>`];
+    if (detail) {
+      stamps.forEach(s => {
+        const v = r.perDay[s] || 0;
+        cells.push(`<td class="${v > 0 ? '' : 'vs-none'}">${v ? v + ' 分钟' : '—'}</td>`);
+      });
+    } else {
+      cells.push(r.today > 0
+        ? `<td class="up">${visitFmtMinutes(r.today)}</td>`
+        : `<td class="vs-none">未看满 1 分钟</td>`);
+    }
     return `<tr>${cells.join('')}</tr>`;
   }).join('')}</tbody>`;
 
   if (hint) {
     const warn = visitStatsState.failed ? `<br/><span style="color:var(--red);font-weight:700;">⚠️ 有 ${visitStatsState.failed} 项因请求频率限制未读到，点击「刷新」可重试。</span>` : '';
-    hint.innerHTML = `统计口径：商家在页面有交互（鼠标 / 键盘 / 滚动 / 点击）时才计时，标签页切走或挂机不计；每累计满 1 分钟上报一次，故时长为分钟级。跨设备、跨浏览器自动汇总。<br/>数据存储：公共计数器服务 abacus.jasoncameron.dev · 命名空间 <code>${esc(VISIT_NS)}</code>，无需自建后端。${visitStatsState.expanded ? '' : '点击「最近 7 天明细」可展开每日分布（约需 30 秒逐批读取）。'}${warn}`;
+    hint.innerHTML = `统计口径：商家在页面有交互（鼠标 / 键盘 / 滚动 / 点击）时才计时，标签页切走或挂机不计；每满 1 分钟记一次，故不足 1 分钟的访问记为 0。跨设备、跨浏览器自动汇总，每日零点重新起算。${detail ? '' : '<br/>点击「最近 7 天明细」查看每天分别看了几分钟（约需 30 秒逐批读取）。'}${warn}`;
   }
 }
 
