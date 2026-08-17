@@ -212,23 +212,37 @@ def parse_products(text):
             i += 2
             while i < len(lines) and lines[i].strip().startswith("|"):
                 row_values = split_row(lines[i])
+                if len(row_values) > len(header):
+                    # 源数据里 DPA商品名称 偶发包含未转义的“|”，需要把超出列数并回商品名
+                    tail_count = len(header) - 2  # 除去「排名」「DPA商品名称」后固定尾部列数
+                    row_values = [
+                        row_values[0],
+                        "|".join(row_values[1: len(row_values) - tail_count]),
+                        *row_values[-tail_count:]
+                    ]
                 if len(row_values) < len(header):
                     row_values += [""] * (len(header) - len(row_values))
                 row = dict(zip(header, row_values))
-                url = row.get("素材URL(创意唯一)", "")
-                if url:
-                    products.append({
-                        "link": current_link,
-                        "category": current_category,
-                        "rank": row.get("排名", ""),
-                        "name": row.get("DPA商品名称", ""),
-                        "spend": num(row.get("消耗(万元)")),
-                        "roi": num(row.get("下单ROI")),
-                        "price": num(row.get("下单单价(元)")),
-                        "bid": num(row.get("目标出价(元)")),
-                        "creativeCount": num(row.get("曝光创意唯一性ID数")),
-                        "url": url,
-                    })
+                url = (row.get("素材URL(创意唯一)", "") or "").strip()
+                name = (row.get("DPA商品名称", "") or "").strip()
+                if url in {"", "-", "nan", "None"}:
+                    i += 1
+                    continue
+                if not name:
+                    i += 1
+                    continue
+                products.append({
+                    "link": current_link,
+                    "category": current_category,
+                    "rank": row.get("排名", ""),
+                    "name": name,
+                    "spend": num(row.get("消耗(万元)")),
+                    "roi": num(row.get("下单ROI")),
+                    "price": num(row.get("下单单价(元)")),
+                    "bid": num(row.get("目标出价(元)")),
+                    "creativeCount": num(row.get("曝光创意唯一性ID数")),
+                    "url": url,
+                })
                 i += 1
             continue
         i += 1
